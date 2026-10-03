@@ -1,0 +1,33 @@
+# 开发环境配置模板。默认使用仓库内 .runtime/cms.db，也可配置 PostgreSQL。
+# 复制为 configs/config.dev.yaml 后设置 JWT 密钥：
+#   cp configs/config.dev.example.yaml configs/config.dev.yaml
+# config.dev.yaml 已被 Git 忽略，不会提交。
+swagger:
+  enabled: true
+
+database:
+  driver: sqlite
+  url: ../.runtime/cms.db
+  username: ""
+  password: ""
+
+# To use PostgreSQL for development, replace the database section with a PostgreSQL URL,
+# username, and password. Keep the SQLite profile in configs/config.sqlite.yaml available
+# for explicit APP_CONFIG_PROFILE=sqlite runs.
+
+jwt:
+  secret: replace-with-a-random-local-development-jwt-secret
+
+auth:
+  login_guard:
+    # Set either max_attempts to 0 to disable that protection dimension.
+    ip_max_attempts: 20
+    username_max_attempts: 5
+
+file:
+  # Set an absolute local path when file uploads are needed.
+  storage_root: /tmp/cms-api-uploads
+
+log:
+  level: debug
+  format: text

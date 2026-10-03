@@ -1,0 +1,176 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+env:
+  APP_ENV: dev
+  GOCACHE: '{{.ROOT_DIR}}/.task/go-build'
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  db:migrate:
+    desc: Apply migrations using the current database configuration
+    dir: cms-api
+    env:
+      APP_FILE__STORAGE_ROOT: '{{.ROOT_DIR}}/.runtime/uploads'
+    cmds:
+      - go run ./cmd/migrate up --kind all
+
+  db:migrate:sqlite:
+    desc: Apply migrations to the SQLite database
+    dir: cms-api
+    env:
+      APP_CONFIG_PROFILE: sqlite
+      APP_DATABASE__URL: '{{.ROOT_DIR}}/.runtime/cms.db'
+      APP_FILE__STORAGE_ROOT: '{{.ROOT_DIR}}/.runtime/uploads'
+    cmds:
+      - go run ./cmd/migrate up --kind all
+
+  api:sqlite:
+    desc: Start the API with the SQLite profile
+    dir: cms-api
+    env:
+      APP_CONFIG_PROFILE: sqlite
+      APP_DATABASE__URL: '{{.ROOT_DIR}}/.runtime/cms.db'
+      APP_FILE__STORAGE_ROOT: '{{.ROOT_DIR}}/.runtime/uploads'
+    cmds:
+      - go run ./cmd/api
+
+  api:
+    desc: Start the API using the current database configuration
+    dir: cms-api
+    env:
+      APP_FILE__STORAGE_ROOT: '{{.ROOT_DIR}}/.runtime/uploads'
+    cmds:
+      - go run ./cmd/api
+
+  admin:
+    desc: Start the CMS Admin development server
+    dir: cms-admin
+    cmds:
+      - npm run dev -- --host 0.0.0.0
+
+  site:
+    desc: Start the Astro development server
+    dir: site
+    cmds:
+      - npm run dev -- --host 0.0.0.0
+
+  dev:
+    desc: Start the SQLite API, CMS Admin and Astro site
+    deps:
+      - db:migrate:sqlite
+    cmds:
+      - task --parallel api:sqlite admin site
+
+  dev:cms:
+    desc: Start the SQLite API and CMS Admin
+    deps:
+      - db:migrate:sqlite
+    cmds:
+      - task --parallel api:sqlite admin
+
+  dev:site:
+    desc: Start only the Astro site
+    cmds:
+      - task site
+
+  backend:check:
+    desc: Run Go tests and static analysis
+    dir: cms-api
+    cmds:
+      - go test ./...
+      - go vet ./...
+
+  backend:test:
+    desc: Run Go unit tests
+    dir: cms-api
+    cmds:
+      - go test ./...
+
+  db:backup:
+    desc: Create an online SQLite backup; pass CLI flags through CLI_ARGS
+    dir: cms-api
+    env:
+      APP_CONFIG_PROFILE: sqlite
+      APP_DATABASE__URL: '{{.ROOT_DIR}}/.runtime/cms.db'
+      APP_FILE__STORAGE_ROOT: '{{.ROOT_DIR}}/.runtime/uploads'
+    cmds:
+      - go run ./cmd/backup {{.CLI_ARGS}}
+
+  admin:lint:
+    desc: Lint CMS Admin
+    dir: cms-admin
+    cmds:
+      - npm run lint
+
+  admin:build:
+    desc: Build CMS Admin
+    dir: cms-admin
+    cmds:
+      - npm run build
+
+  site:build:
+    desc: Build the Astro site
+    dir: site
+    cmds:
+      - npm run build
+
+  check:
+    desc: Run Go, CMS Admin and Astro checks
+    deps:
+      - backend:check
+      - admin:lint
+      - admin:build
+      - site:build
+
+  build:cms:
+    desc: Build the API with embedded CMS Admin plus migration and backup tools
+    deps:
+      - admin:build
+    dir: cms-api
+    vars:
+      GOEXE:
+        sh: go env GOEXE
+    cmds:
+      - node ../scripts/prepare-webui.mjs
+      - go build -tags=embedweb -trimpath -o ../bin/cms-api{{.GOEXE}} ./cmd/api
+      - go build -trimpath -o ../bin/cms-migrate{{.GOEXE}} ./cmd/migrate
+      - go build -trimpath -o ../bin/cms-backup{{.GOEXE}} ./cmd/backup
+
+  build:check:
+    desc: Build release binaries and verify embedded frontend assets
+    deps:
+      - build:cms
+    dir: cms-api
+    cmds:
+      - go test -tags=embedweb ./...
+      - go vet -tags=embedweb ./...
+
+  build:site:
+    desc: Build the Astro site independently
+    cmds:
+      - task site:build
+
+  build:
+    desc: Build CMS binaries and the Astro site
+    deps:
+      - build:cms
+      - build:site
+
+  db:integration:sqlite:
+    desc: Run the SQLite database integration contract
+    dir: cms-api
+    cmds:
+      - go test -tags=integration ./integration -run SQLite -count=1
+
+  db:integration:postgres:
+    desc: Run the PostgreSQL database integration contract
+    dir: cms-api
+    cmds:
+      - go test -tags=integration ./integration -run 'Postgres|Auth|RBAC|SysConfig|Department|Dictionary|Login|File|Notification|UserPage' -count=1

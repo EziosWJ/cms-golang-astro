@@ -1,0 +1,13 @@
+.git
+.runtime
+.task
+bin
+**/node_modules
+**/dist
+**/.astro
+**/.data
+**/*.db
+**/.env
+cms-api/configs/config.*.yaml
+!cms-api/configs/config.sqlite.yaml
+ADR-0001 + Phase 0 Spec：CMS 工程初始化.md

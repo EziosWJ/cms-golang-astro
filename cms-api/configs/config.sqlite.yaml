@@ -1,0 +1,8 @@
+# Optional SQLite profile overlay for callers who explicitly select it.
+# APP_ENV remains dev/test/prod; this file only switches the database backend.
+# The relative path is resolved from the cms-api directory.
+database:
+  driver: sqlite
+  url: ../.runtime/cms.db
+  username: ""
+  password: ""

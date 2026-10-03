@@ -1,0 +1,8 @@
+# Optional PostgreSQL profile. Copy this file to config.postgres.yaml,
+# replace the credentials with local values, then set APP_CONFIG_PROFILE=postgres.
+# APP_JWT__SECRET must still be injected separately or set in config.dev.yaml.
+database:
+  driver: postgres
+  url: postgres://127.0.0.1:5432/cms?sslmode=disable
+  username: replace-with-local-database-user
+  password: replace-with-local-database-password
