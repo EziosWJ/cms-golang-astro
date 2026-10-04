@@ -127,19 +127,33 @@ tasks:
       - npm run build
 
   site:build:
-    desc: 构建 Astro 站点
+    desc: 使用默认 Comic 主题构建 Astro 站点
     dir: site
     cmds:
       - npm run build
 
+  site:build:vaporwave:
+    desc: 使用 Vaporwave 主题构建 Astro 站点
+    dir: site
+    env:
+      BLOG_THEME: vaporwave
+    cmds:
+      - npm run build
+
+  site:themes:check:
+    desc: 顺序验证所有内置 Astro 主题均可独立构建
+    cmds:
+      - task site:build
+      - task site:build:vaporwave
+
   check:
-    desc: 检查 Go、CMS Admin 和 Astro 站点
+    desc: 检查 Go、CMS Admin 和两套内置 Astro 主题
     deps:
       - backend:check
       - admin:lint
       - admin:date:check
       - admin:build
-      - site:build
+      - site:themes:check
 
   build:cms:
     desc: 构建内嵌 CMS Admin 的 API 及迁移、备份等工具
