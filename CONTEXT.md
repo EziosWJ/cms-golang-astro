@@ -1,6 +1,6 @@
 # CMS 领域上下文
 
-自托管个人博客 CMS 的统一术语。内容领域按 Phase 1 设计定义，业务实现尚未开始。
+自托管个人博客 CMS 的统一术语。内容领域术语在 Phase 1 定义并已实现；主题术语见 [ADR-0005](docs/adr/0005-theme-architecture.md)。
 
 ## 当前边界
 
@@ -68,6 +68,20 @@ _Avoid_: 将全站重建理解为发布所有工作稿。
 
 **发布尝试**：发布任务的一次执行，使用固定目标内容和该次执行时的线上站点作为基线；重试形成新的尝试。
 
+## 主题领域
+
+**主题（Theme）**：`site` 的构建期子系统，决定站点布局、组件、文章正文视觉与 Shiki 配色；每次构建只包含一个主题。
+
+**主题 ID 与版本（Theme ID / themeVersion）**：主题的稳定标识与语义版本，由 CMS 站点配置固化并进入 Revision 与 Release；构建时须与 Astro Theme Manifest 一致。
+
+**Theme Model**：Site Core 向主题暴露的渲染数据模型，只含 URL、标题、摘要、日期、封面、taxonomy、统计等；不含数据库 ID 或 CMS DTO。
+
+**Theme API**：主题必须实现的 V1 契约（`BaseLayout`、`HomeView`、`ArticleView` 等视图），页面路由与 `/archives/`、`/categories/`、`/tags/` 等 URL 契约属于 Site Core。
+
+_Avoid_: 把主题当作可运行时切换或可从后台即时预览的对象。
+
+**内置主题**：随仓库提供的主题，当前为 `comic`（默认主主题）与 `vaporwave`。
+
 ## 领域职责
 
 以下概念表达领域职责。
@@ -79,3 +93,5 @@ _Avoid_: 将全站重建理解为发布所有工作稿。
 **Publishing**：控制内容对外发布的领域。
 
 **Builder**：消费生成内容并调用 Astro、产生静态站点发布产物的独立基础设施能力。
+
+**Theme**：`site` 内负责站点表现的构建期领域，按 Theme API 消费 Theme Model。
