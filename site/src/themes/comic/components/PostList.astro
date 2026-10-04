@@ -3,4 +3,4 @@ import type { ThemeArticle } from '../../types';
 import PostCard from './PostCard.astro';
 const { articles, newCount = 0 } = Astro.props as { articles: ThemeArticle[]; newCount?: number };
 ---
-{articles.length ? <div class="comic-post-grid">{articles.map((article, index) => <PostCard article={article} index={index} isNew={index < newCount} />)}</div> : <div class="comic-empty"><strong>还没有内容。</strong><p>这里会在发布文章后自动出现新的分镜。</p></div>}
+{articles.length ? <div class="comic-post-grid">{articles.map((article, index) => <PostCard article={article} index={index} isNew={index < newCount} />)}</div> : <div class="comic-empty"><strong>暂无已发布文章</strong><p>这里会在发布文章后自动出现新的分镜。</p></div>}
