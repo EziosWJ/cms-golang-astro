@@ -1,0 +1,5 @@
+---
+const { title, kicker, href, linkLabel = '查看全部 →', tone = 'burst', level = 2 } = Astro.props;
+const Tag = `h${level}` as 'h1' | 'h2';
+---
+<header class="comic-section-title"><div>{kicker && <span class:list={['comic-kicker', `comic-ink-${tone}`]}>{kicker}</span>}<Tag>{title}</Tag></div>{href && <a href={href}>{linkLabel}</a>}</header>

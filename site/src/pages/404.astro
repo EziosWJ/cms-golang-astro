@@ -1,5 +1,5 @@
 ---
 import { NotFoundView } from '../theme';
-import { themeSite } from '../lib/theme-model';
+import { themeArticles, themeSite } from '../lib/theme-model';
 ---
-<NotFoundView site={themeSite} />
+<NotFoundView site={themeSite} recent={themeArticles.slice(0, 3)} />

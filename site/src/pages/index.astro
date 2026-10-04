@@ -1,5 +1,5 @@
 ---
 import { HomeView } from '../theme';
-import { themeArticles, themeSite } from '../lib/theme-model';
+import { themeHomeModel, themeSite } from '../lib/theme-model';
 ---
-<HomeView site={themeSite} articles={themeArticles} />
+<HomeView site={themeSite} {...themeHomeModel} />

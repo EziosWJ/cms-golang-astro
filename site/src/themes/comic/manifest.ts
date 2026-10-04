@@ -1,8 +1,8 @@
 export const themeManifest = {
   id: 'comic',
   name: 'Comic',
-  version: '1.0.0',
-  description: 'Neo-Brutalist comic theme with bold ink lines and paper-like cards.',
+  version: '1.1.0',
+  description: 'Primary Neo-Brutalist comic theme with bold ink, halftone paper and editorial reading views.',
   author: 'EziosWJ',
   preview: 'builtin:comic',
   compatibility: { cmsThemeApi: '1' },

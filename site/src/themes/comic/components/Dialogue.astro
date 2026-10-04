@@ -1,0 +1,4 @@
+---
+const { speaker, tone = 'paper', tail = 'down', class: className } = Astro.props;
+---
+<aside class:list={['comic-dialogue', `comic-dialogue-${tail}`, `comic-tone-${tone}`, className]}>{speaker && <strong class="comic-dialogue-speaker">{speaker}</strong>}<slot /></aside>

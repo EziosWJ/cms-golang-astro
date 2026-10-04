@@ -1,6 +1,44 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Button from '../components/Button.astro';
+import TagChip from '../components/TagChip.astro';
 import type { ArticleProps } from '../../types';
-const { site, article, html } = Astro.props as ArticleProps;
+const { site, article, html, headings, newer, older, related, wordCount, imageCount } = Astro.props as ArticleProps;
+const primaryCategory = article.categories[0];
 ---
-<BaseLayout site={site} title={article.title} description={article.summary}><article class="comic-article"><header><p class="comic-kicker">ARTICLE / {article.dateLabel}</p><h1>{article.title}</h1>{article.summary && <p class="comic-lead">{article.summary}</p>}<div class="comic-tags">{[...article.categories, ...article.tags].map((term) => <a href={term.url}>{term.kind === 'tag' ? '#' : ''}{term.name}</a>)}</div></header>{article.coverUrl && <img class="comic-cover" src={article.coverUrl} alt="文章封面" />}<div class="comic-prose" set:html={html} /><footer class="comic-article-footer">最后更新：{article.updatedLabel}</footer></article></BaseLayout>
+<BaseLayout site={site} title={article.title} description={article.summary || site.description} type="article" canonical={article.url}>
+  <nav aria-label="面包屑" class="comic-breadcrumbs"><a href={site.homeUrl}>首页</a><span aria-hidden="true">/</span>{primaryCategory && <><a href={primaryCategory.url}>{primaryCategory.name}</a><span aria-hidden="true">/</span></>}<strong>{article.title}</strong></nav>
+  <div class="comic-back-row"><Button href={site.archiveUrl} tone="paper" size="sm">← 归档</Button></div>
+
+  <div class="comic-article-layout">
+    <article class="comic-article-shell">
+      <header class="comic-article-header comic-crop-marks">
+        <div class="comic-article-topline"><div class="comic-article-chips">{article.categories.map((term) => <TagChip term={term} size="sm" />)}</div><span>ISSUE / {article.year}</span></div>
+        <h1>{article.title}</h1>
+        {article.summary && <p class="comic-article-deck">{article.summary}</p>}
+        <dl class="comic-article-facts">
+          <div><dt>发布</dt><dd><time datetime={article.publishedAt}>{article.dateLabel}</time></dd></div>
+          {article.updatedLabel && article.updatedLabel !== article.dateLabel && <div><dt>更新</dt><dd>{article.updatedLabel}</dd></div>}
+          <div><dt>篇幅</dt><dd>{wordCount} 字/词{imageCount > 0 ? ` · ${imageCount} 图` : ''}</dd></div>
+        </dl>
+      </header>
+
+      {article.coverUrl && <figure class="comic-article-cover"><img src={article.coverUrl} alt="文章封面" /></figure>}
+      <div class="comic-prose" set:html={html} />
+
+      {article.tags.length > 0 && <footer class="comic-article-tags"><h2>这篇挂在</h2><div>{article.tags.map((term) => <TagChip term={term} />)}</div></footer>}
+
+      <nav class="comic-prev-next" aria-label="相邻文章">
+        {older ? <a href={older.url}><small>← 更早一篇</small><strong>{older.title}</strong></a> : <p>这是最早的一篇，前面没有更早的了。</p>}
+        {newer ? <a href={newer.url}><small>更新一篇 →</small><strong>{newer.title}</strong></a> : <p class="is-right">这是最新的一篇，没有更新的了。</p>}
+      </nav>
+      <p class="comic-permalink">永久链接 {article.url}</p>
+    </article>
+
+    <aside class="comic-article-sidebar">
+      {headings.length > 1 ? <div class="comic-toc"><strong>这一篇讲什么</strong><nav aria-label="文章目录">{headings.map((heading) => <a class:list={[`depth-${heading.depth}`]} href={`#${heading.slug}`}>{heading.depth === 3 && <span aria-hidden="true">└ </span>}{heading.text}</a>)}</nav></div> : <div class="comic-sidebar-note">这篇没有分节标题，一口气读完就好。</div>}
+      {related.length > 0 && <div class="comic-sidebar-related"><strong>接着看</strong><ul>{related.slice(0, 4).map((item) => <li><a href={item.url}>{item.title}</a></li>)}</ul></div>}
+      <Button href={site.archiveUrl} class="comic-sidebar-button">回到归档</Button>
+    </aside>
+  </div>
+</BaseLayout>

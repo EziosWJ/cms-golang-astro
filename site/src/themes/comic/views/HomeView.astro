@@ -1,6 +1,45 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import type { ArticleListProps } from '../../types';
-const { site, articles } = Astro.props as ArticleListProps;
+import Button from '../components/Button.astro';
+import Dialogue from '../components/Dialogue.astro';
+import PostList from '../components/PostList.astro';
+import SectionTitle from '../components/SectionTitle.astro';
+import TagChip from '../components/TagChip.astro';
+import type { HomeViewProps } from '../../types';
+const { site, articles, latest, categories, tags, hotTags, stats } = Astro.props as HomeViewProps;
+const headline = articles[0];
 ---
-<BaseLayout site={site}><section class="comic-hero"><p class="comic-kicker">PERSONAL NOTES / BUILD LOG</p><h1>{site.name}</h1><p>{site.description || '记录工程实践、思考与生活。'}</p></section><section><div class="comic-section-title"><h2>最新文章</h2><a href={site.archiveUrl}>查看全部 →</a></div>{articles.length ? <div class="comic-grid">{articles.slice(0, 12).map((article) => <article class="comic-card"><p class="comic-date">{article.dateLabel}</p><h3><a href={article.url}>{article.title}</a></h3>{article.summary && <p>{article.summary}</p>}<div class="comic-tags">{article.tags.slice(0,4).map((tag) => <a href={tag.url}>#{tag.name}</a>)}</div></article>)}</div> : <div class="comic-empty">暂无已发布文章。</div>}</section></BaseLayout>
+<BaseLayout site={site}>
+  <section class="comic-home-hero comic-crop-marks">
+    <div class="comic-home-hero-bar">
+      <span>TECH NOTES</span>
+      <strong>{headline?.dateLabel || 'PERSONAL ARCHIVE'} · 共 {articles.length} 篇</strong>
+      <i aria-hidden="true"></i>
+    </div>
+    <div class="comic-home-hero-grid">
+      <div>
+        <h1 class="comic-ink-title">{site.name}</h1>
+        <p class="comic-home-subtitle">{site.description || '把软件、系统和生活里的发现，画成一格一格可以回看的记录。'}</p>
+        <div class="comic-hero-actions"><Button href={site.archiveUrl} size="lg">翻全部归档</Button><Button href={site.tagsUrl} tone="paper" intent="press" size="lg">按标签找</Button></div>
+      </div>
+      <div class="comic-home-headline-column">
+        <div class="comic-latest-headline">
+          <span>LATEST HEADLINE</span>
+          {headline ? <a href={headline.url}>{headline.title}</a> : <strong>还没有文章</strong>}
+        </div>
+        <div class="comic-home-stats" aria-label="站点统计">{stats.map((stat, index) => <div class:list={[`tone-${index % 3}`]}><strong>{stat.value}</strong><span>{stat.label}</span></div>)}</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="comic-home-dialogue"><Dialogue speaker={site.authorName || '作者'} tail="down" tone="burst"><p>{site.authorBio || '这里放的是这些年攒下的现场笔记：命令能跑、结论有出处，遇到类似问题可以直接翻出来。'}</p></Dialogue></div>
+
+  <section class="comic-section" aria-label="分类">
+    <SectionTitle kicker="CATEGORIES" title="主要分镜" tone="info" href={site.categoriesUrl} linkLabel="全部分类 →" />
+    {categories.length ? <div class="comic-home-categories">{categories.slice(0, 6).map((term, index) => <a class:list={[`tone-${index % 4}`]} href={term.url}><span class="comic-home-category-title"><i aria-hidden="true"></i><strong>{term.name}</strong></span><span class="comic-home-category-count"><b>{term.count}</b><small>篇</small><em>进入 →</em></span></a>)}</div> : <div class="comic-empty"><strong>还没有分类。</strong></div>}
+  </section>
+
+  <section class="comic-section comic-home-latest" aria-label="最新更新"><SectionTitle kicker="NEWEST PANELS" title="最新更新" tone="action" href={site.archiveUrl} /><PostList articles={latest} newCount={2} />{articles.length > latest.length && <div class="comic-home-more"><Button href={site.archiveUrl} tone="paper">还有 {articles.length - latest.length} 篇 → 全部归档</Button></div>}</section>
+
+  <section class="comic-section" aria-label="高频标签"><SectionTitle kicker="TAGS" title="高频标签" tone="burst" href={site.tagsUrl} /><div class="comic-home-tag-wall">{hotTags.map((term, index) => <span class:list={[index % 3 === 0 ? 'tilt-right' : index % 3 === 1 ? 'tilt-left' : '']}><TagChip term={term} /></span>)}{tags.length > hotTags.length && <Button href={site.tagsUrl} tone="paper" size="sm">全部 {tags.length} 个 →</Button>}</div></section>
+</BaseLayout>

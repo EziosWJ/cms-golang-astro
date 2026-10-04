@@ -1,0 +1,15 @@
+---
+import type { ThemeArticle } from '../../types';
+import TagChip from './TagChip.astro';
+const { article, isNew = false, index = 0 } = Astro.props as { article: ThemeArticle; isNew?: boolean; index?: number };
+const tone = ['action', 'burst', 'info', 'go'][index % 4];
+---
+<article class:list={['comic-card', `comic-card-${tone}`]}>
+  {article.coverUrl && <a class="comic-card-cover" href={article.url} tabindex="-1"><img src={article.coverUrl} alt="" loading="lazy" /></a>}
+  <div class="comic-card-body">
+    <div class="comic-card-meta"><time datetime={article.publishedAt}>{article.dateLabel}</time>{isNew && <strong>NEW!</strong>}</div>
+    <h3><a href={article.url}>{article.title}</a></h3>
+    {article.summary && <p>{article.summary}</p>}
+    {(article.categories.length > 0 || article.tags.length > 0) && <div class="comic-card-chips">{article.categories.slice(0, 1).map((term) => <TagChip term={term} size="sm" />)}{article.tags.slice(0, 3).map((term) => <TagChip term={term} size="sm" />)}</div>}
+  </div>
+</article>

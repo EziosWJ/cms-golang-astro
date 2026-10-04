@@ -1,0 +1,26 @@
+---
+import type { ThemeSite } from '../../types';
+import ThemeToggle from './ThemeToggle.astro';
+const { site } = Astro.props as { site: ThemeSite };
+const path = Astro.url.pathname;
+const nav = [
+  { label: '归档', href: site.archiveUrl },
+  { label: '分类', href: site.categoriesUrl },
+  { label: '标签', href: site.tagsUrl },
+];
+const isActive = (href: string) => path === href || (href !== site.homeUrl && path.startsWith(href));
+const logo = (site.name.trim()[0] || 'E').toUpperCase();
+---
+<header class="comic-header">
+  <div class="comic-header-inner">
+    <a class="comic-brand" href={site.homeUrl} aria-label={`${site.name} 首页`}>
+      <span class="comic-brand-mark" aria-hidden="true">{logo}</span>
+      <span class="comic-brand-copy"><strong>{site.name}</strong><small>{site.description || 'PERSONAL ARCHIVE'}</small></span>
+    </a>
+    <nav class="comic-nav" aria-label="主导航">
+      {nav.map((item) => <a class:list={['comic-nav-link', { 'is-active': isActive(item.href) }]} href={item.href} aria-current={isActive(item.href) ? 'page' : undefined}>{isActive(item.href) && <span aria-hidden="true">▸</span>}{item.label}</a>)}
+      <ThemeToggle />
+    </nav>
+  </div>
+  <div class="comic-rule" aria-hidden="true"></div>
+</header>

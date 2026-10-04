@@ -1,0 +1,16 @@
+---
+import type { ThemeSite } from '../../types';
+const { site } = Astro.props as { site: ThemeSite };
+const year = new Date().getFullYear();
+---
+<footer class="comic-footer">
+  <div class="comic-footer-band" aria-hidden="true"></div>
+  <div class="comic-footer-inner">
+    <div class="comic-footer-identity">
+      <strong>{site.name}</strong>
+      <p>{site.authorBio || site.description || '记录软件、系统与日常。'}</p>
+    </div>
+    <nav aria-label="页脚导航"><a href={site.homeUrl}>首页</a><a href={site.archiveUrl}>归档</a><a href={site.categoriesUrl}>分类</a><a href={site.tagsUrl}>标签</a></nav>
+    <small>© {year} {site.authorName || site.name} · BUILT WITH ASTRO</small>
+  </div>
+</footer>

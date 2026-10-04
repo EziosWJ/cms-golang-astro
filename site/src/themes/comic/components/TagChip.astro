@@ -1,0 +1,5 @@
+---
+import type { ThemeTerm } from '../../types';
+const { term, prefix = term.kind === 'tag' ? '#' : '▣', size = 'md' } = Astro.props as { term: ThemeTerm; prefix?: string; size?: 'sm' | 'md' | 'lg' };
+---
+<a class:list={['comic-chip', `comic-chip-${size}`, term.kind === 'tag' ? 'comic-chip-tag' : 'comic-chip-category']} href={term.url}><span aria-hidden="true">{prefix}</span>{term.name}{term.count > 0 && <small>{term.count}</small>}</a>
