@@ -34,8 +34,8 @@ function headingSlug(value: string) {
 function addHeadingIds(html: string): { html: string; headings: ThemeHeading[] } {
   const headings: ThemeHeading[] = [];
   const seen = new Map<string, number>();
-  const output = html.replace(/<h([23])([^>]*)>([\s\S]*?)<\/h\1>/g, (full, depthValue: string, attrs: string, body: string) => {
-    const depth = Number(depthValue) as 2 | 3;
+  const output = html.replace(/<h([123])([^>]*)>([\s\S]*?)<\/h\1>/g, (full, depthValue: string, attrs: string, body: string) => {
+    const depth = Number(depthValue) as 1 | 2 | 3;
     const text = plainHeadingText(body);
     const existing = attrs.match(/\sid=["']([^"']+)["']/)?.[1];
     let slug = existing || headingSlug(text);
@@ -44,7 +44,7 @@ function addHeadingIds(html: string): { html: string; headings: ThemeHeading[] }
       seen.set(slug, count + 1);
       if (count) slug = `${slug}-${count + 1}`;
     }
-    headings.push({ depth, text, slug });
+    if (depth === 2 || depth === 3) headings.push({ depth, text, slug });
     return existing ? full : `<h${depth}${attrs} id="${slug}">${body}</h${depth}>`;
   });
   return { html: output, headings };
