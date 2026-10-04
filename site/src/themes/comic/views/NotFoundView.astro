@@ -1,6 +1,9 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import Button from '../components/Button.astro';
 import type { NotFoundProps } from '../../types';
-const { site } = Astro.props as NotFoundProps;
+const { site, recent } = Astro.props as NotFoundProps;
 ---
-<BaseLayout site={site} title="404"><div class="comic-404"><strong>404!</strong><h1>这一格还没有画出来</h1><p>页面不存在，或者已经被移动。</p><a href={site.homeUrl}>返回首页 →</a></div></BaseLayout>
+<BaseLayout site={site} title="404" description="页面不存在" noindex>
+  <section class="comic-404 comic-crop-marks"><strong aria-hidden="true">404!</strong><p class="comic-kicker comic-ink-action">PANEL MISSING</p><h1>这一格被撕掉了。</h1><p>地址可能写错，也可能这篇内容已经换了位置。你可以从下面几条路继续翻。</p><div class="comic-404-actions"><Button href={site.homeUrl}>回首页</Button><Button href={site.archiveUrl} tone="burst">看归档</Button></div>{recent.length > 0 && <div class="comic-404-recent"><span>RECENT ISSUES</span>{recent.map((article) => <a href={article.url}>{article.title} →</a>)}</div>}</section>
+</BaseLayout>

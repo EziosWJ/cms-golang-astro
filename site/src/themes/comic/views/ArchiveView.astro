@@ -1,6 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import type { ArticleListProps } from '../../types';
-const { site, articles } = Astro.props as ArticleListProps;
+import SectionTitle from '../components/SectionTitle.astro';
+import type { ArchiveViewProps } from '../../types';
+const { site, articles, groups, firstYear } = Astro.props as ArchiveViewProps;
 ---
-<BaseLayout site={site} title="归档"><div class="comic-page-heading"><span>ARCHIVE</span><h1>文章归档</h1></div>{articles.length ? <div class="comic-list">{articles.map((article) => <article><time>{article.dateLabel}</time><h2><a href={article.url}>{article.title}</a></h2>{article.summary && <p>{article.summary}</p>}</article>)}</div> : <div class="comic-empty">暂无已发布文章。</div>}</BaseLayout>
+<BaseLayout site={site} title="归档" description={`${site.name} 的全部文章归档`}>
+  <header class="comic-page-hero"><p class="comic-kicker comic-ink-info">BACK ISSUES</p><h1>全部归档</h1><p>{articles.length ? `${firstYear ?? ''} 年至今，共 ${articles.length} 篇记录。` : '归档柜目前还是空的。'}</p></header>
+  {groups.length ? <div class="comic-archive">{groups.map((group) => <section class="comic-year"><div class="comic-year-label"><strong>{group.year}</strong><span>{group.articles.length} POSTS</span></div><div class="comic-year-list">{group.articles.map((article, index) => <article><span class="comic-archive-index">{String(index + 1).padStart(2,'0')}</span><time datetime={article.publishedAt}>{article.dateLabel}</time><h2><a href={article.url}>{article.title}</a></h2>{article.summary && <p>{article.summary}</p>}</article>)}</div></section>)}</div> : <div class="comic-empty"><strong>暂无归档。</strong></div>}
+  <div class="comic-archive-end"><SectionTitle title="END OF FILE" kicker="THAT'S ALL, FOLKS!" /></div>
+</BaseLayout>

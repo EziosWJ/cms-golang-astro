@@ -1,6 +1,32 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PostCard from '../components/PostCard.astro';
+import SectionTitle from '../components/SectionTitle.astro';
+import TagChip from '../components/TagChip.astro';
 import type { ArticleProps } from '../../types';
-const { site, article, html } = Astro.props as ArticleProps;
+const { site, article, html, headings, newer, older, related, wordCount, imageCount } = Astro.props as ArticleProps;
 ---
-<BaseLayout site={site} title={article.title} description={article.summary}><article class="comic-article"><header><p class="comic-kicker">ARTICLE / {article.dateLabel}</p><h1>{article.title}</h1>{article.summary && <p class="comic-lead">{article.summary}</p>}<div class="comic-tags">{[...article.categories, ...article.tags].map((term) => <a href={term.url}>{term.kind === 'tag' ? '#' : ''}{term.name}</a>)}</div></header>{article.coverUrl && <img class="comic-cover" src={article.coverUrl} alt="文章封面" />}<div class="comic-prose" set:html={html} /><footer class="comic-article-footer">最后更新：{article.updatedLabel}</footer></article></BaseLayout>
+<BaseLayout site={site} title={article.title} description={article.summary || site.description} type="article" canonical={article.url}>
+  <article class="comic-article-shell">
+    <header class="comic-article-header comic-crop-marks">
+      <div class="comic-article-meta"><span>ISSUE / {article.year}</span><time datetime={article.publishedAt}>{article.dateLabel}</time></div>
+      <h1>{article.title}</h1>
+      {article.summary && <p class="comic-article-deck">{article.summary}</p>}
+      <div class="comic-article-chips">{article.categories.map((term) => <TagChip term={term} />)}{article.tags.map((term) => <TagChip term={term} />)}</div>
+    </header>
+
+    {article.coverUrl && <figure class="comic-article-cover"><img src={article.coverUrl} alt="文章封面" /></figure>}
+
+    <div class="comic-reading-grid">
+      <div>
+        <div class="comic-reading-stats"><span><strong>{wordCount}</strong> 字/词</span><span><strong>{imageCount}</strong> 张图</span><span>更新 {article.updatedLabel}</span></div>
+        <div class="comic-prose" set:html={html} />
+      </div>
+      {headings.length > 0 && <aside class="comic-toc"><strong>IN THIS ISSUE</strong><nav aria-label="文章目录">{headings.map((heading) => <a class:list={[`depth-${heading.depth}`]} href={`#${heading.slug}`}>{heading.text}</a>)}</nav></aside>}
+    </div>
+
+    {(newer || older) && <nav class="comic-prev-next" aria-label="文章前后篇">{older ? <a href={older.url}><small>← OLDER</small><strong>{older.title}</strong></a> : <span />}{newer ? <a href={newer.url}><small>NEWER →</small><strong>{newer.title}</strong></a> : <span />}</nav>}
+  </article>
+
+  {related.length > 0 && <section class="comic-section comic-related"><SectionTitle kicker="YOU MAY ALSO LIKE" title="相关分镜" /><div class="comic-post-grid">{related.map((item, index) => <PostCard article={item} index={index + 1} />)}</div></section>}
+</BaseLayout>

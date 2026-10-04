@@ -1,0 +1,5 @@
+---
+const { href, intent = 'pop', tone = 'action', size = 'md', class: className, ...rest } = Astro.props;
+const classes = ['comic-button', `comic-button-${intent}`, `comic-tone-${tone}`, `comic-button-${size}`, className];
+---
+{href ? <a href={href} class:list={classes} {...rest}><slot /></a> : <button type="button" class:list={classes} {...rest}><slot /></button>}

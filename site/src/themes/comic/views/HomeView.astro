@@ -1,6 +1,33 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
-import type { ArticleListProps } from '../../types';
-const { site, articles } = Astro.props as ArticleListProps;
+import Button from '../components/Button.astro';
+import Dialogue from '../components/Dialogue.astro';
+import PostList from '../components/PostList.astro';
+import SectionTitle from '../components/SectionTitle.astro';
+import TagChip from '../components/TagChip.astro';
+import type { HomeViewProps } from '../../types';
+const { site, latest, categories, hotTags, stats } = Astro.props as HomeViewProps;
 ---
-<BaseLayout site={site}><section class="comic-hero"><p class="comic-kicker">PERSONAL NOTES / BUILD LOG</p><h1>{site.name}</h1><p>{site.description || '记录工程实践、思考与生活。'}</p></section><section><div class="comic-section-title"><h2>最新文章</h2><a href={site.archiveUrl}>查看全部 →</a></div>{articles.length ? <div class="comic-grid">{articles.slice(0, 12).map((article) => <article class="comic-card"><p class="comic-date">{article.dateLabel}</p><h3><a href={article.url}>{article.title}</a></h3>{article.summary && <p>{article.summary}</p>}<div class="comic-tags">{article.tags.slice(0,4).map((tag) => <a href={tag.url}>#{tag.name}</a>)}</div></article>)}</div> : <div class="comic-empty">暂无已发布文章。</div>}</section></BaseLayout>
+<BaseLayout site={site}>
+  <section class="comic-hero comic-crop-marks">
+    <div class="comic-hero-copy">
+      <p class="comic-kicker comic-ink-action">PERSONAL ARCHIVE / ISSUE 01</p>
+      <h1 class="comic-ink-title">{site.name}</h1>
+      <p class="comic-hero-lead">{site.description || '把软件、系统和生活里的发现，画成一格一格可以回看的记录。'}</p>
+      <div class="comic-hero-actions"><Button href={site.archiveUrl}>开始阅读</Button><Button href={site.tagsUrl} tone="burst" intent="press">翻标签墙</Button></div>
+    </div>
+    <div class="comic-hero-side">
+      {site.avatarUrl ? <img class="comic-avatar" src={site.avatarUrl} alt={`${site.authorName} 的头像`} /> : <div class="comic-avatar comic-avatar-fallback" aria-hidden="true">{(site.authorName || site.name)[0]}</div>}
+      <Dialogue speaker={site.authorName || '作者'} tail="up" tone="burst"><p>{site.authorBio || '欢迎来到我的个人技术档案。这里不追热点，只记录真正解决过的问题。'}</p></Dialogue>
+    </div>
+  </section>
+
+  <section class="comic-stat-strip" aria-label="站点统计">{stats.map((stat, index) => <div class:list={['comic-stat', `comic-stat-${index % 3}`]}><strong>{stat.value}</strong><span>{stat.label}</span></div>)}</section>
+
+  <section class="comic-section"><SectionTitle kicker="LATEST PANELS" title="最新分镜" href={site.archiveUrl} /><PostList articles={latest} newCount={2} /></section>
+
+  <section class="comic-split-section">
+    <div><SectionTitle kicker="FILE CABINET" title="分类" href={site.categoriesUrl} linkLabel="全部分类 →" /><div class="comic-term-stack">{categories.slice(0, 8).map((term) => <a class="comic-category-row" href={term.url}><span>▣ {term.name}</span><strong>{String(term.count).padStart(2,'0')}</strong></a>)}</div></div>
+    <div><SectionTitle kicker="STICKERS" title="热门标签" href={site.tagsUrl} linkLabel="全部标签 →" /><div class="comic-chip-cloud">{hotTags.map((term) => <TagChip term={term} />)}</div></div>
+  </section>
+</BaseLayout>

@@ -1,6 +1,14 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import PostList from '../components/PostList.astro';
+import SectionTitle from '../components/SectionTitle.astro';
+import TagChip from '../components/TagChip.astro';
 import type { TaxonomyDetailProps } from '../../types';
-const { site, term, articles } = Astro.props as TaxonomyDetailProps;
+const { site, term, articles, others, years } = Astro.props as TaxonomyDetailProps;
+const label = term.kind === 'tag' ? '标签' : '分类';
 ---
-<BaseLayout site={site} title={term.name}><div class="comic-page-heading"><span>{term.kind.toUpperCase()}</span><h1>{term.name}</h1><p>{term.count} 篇文章</p></div><div class="comic-list">{articles.map((article) => <article><time>{article.dateLabel}</time><h2><a href={article.url}>{article.title}</a></h2>{article.summary && <p>{article.summary}</p>}</article>)}</div></BaseLayout>
+<BaseLayout site={site} title={term.name} description={`${label} ${term.name} 下的文章`}>
+  <header class="comic-page-hero comic-taxonomy-hero"><p class="comic-kicker comic-ink-info">{term.kind === 'tag' ? 'STICKER' : 'CASE FILE'}</p><h1>{term.kind === 'tag' ? '#' : '▣'}{term.name}</h1><p>{articles.length} 篇文章{years.length ? ` · ${years.join(' / ')}` : ''}</p></header>
+  <section class="comic-section"><PostList articles={articles} /></section>
+  {others.length > 0 && <section class="comic-section"><SectionTitle kicker="KEEP EXPLORING" title={`其他${label}`} /><div class="comic-chip-cloud">{others.map((item) => <TagChip term={item} />)}</div></section>}
+</BaseLayout>

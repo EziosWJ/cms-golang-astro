@@ -1,6 +1,11 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import TagChip from '../components/TagChip.astro';
 import type { TaxonomyWallProps } from '../../types';
-const { site, title, terms } = Astro.props as TaxonomyWallProps;
+const { site, title, terms, totalArticles } = Astro.props as TaxonomyWallProps;
+const isTag = terms[0]?.kind === 'tag' || title === '标签';
 ---
-<BaseLayout site={site} title={title}><div class="comic-page-heading"><span>INDEX</span><h1>{title}</h1></div>{terms.length ? <div class="comic-term-wall">{terms.map((term) => <a href={term.url}><strong>{term.name}</strong><span>{term.count} 篇</span></a>)}</div> : <div class="comic-empty">暂无内容。</div>}</BaseLayout>
+<BaseLayout site={site} title={title} description={`${site.name} 的${title}索引`}>
+  <header class="comic-page-hero"><p class="comic-kicker comic-ink-burst">{isTag ? 'STICKER WALL' : 'FILE CABINET'}</p><h1>{title}</h1><p>{terms.length} 个{isTag ? '标签' : '分类'}，整理 {totalArticles} 篇文章。</p></header>
+  {terms.length ? isTag ? <div class="comic-tag-wall">{terms.map((term) => <TagChip term={term} size={term.count >= 5 ? 'lg' : term.count >= 2 ? 'md' : 'sm'} />)}</div> : <div class="comic-category-wall">{terms.map((term, index) => <a class:list={['comic-folder', `comic-folder-${index % 4}`]} href={term.url}><span>CASE FILE / {String(index + 1).padStart(2,'0')}</span><strong>{term.name}</strong><small>{term.count} POSTS →</small></a>)}</div> : <div class="comic-empty"><strong>还没有{title}。</strong></div>}
+</BaseLayout>
