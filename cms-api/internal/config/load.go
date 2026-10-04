@@ -69,6 +69,14 @@ func LoadFromDir(dir string) (*Config, error) {
 	if err := k.Unmarshal("", &cfg); err != nil {
 		return nil, fmt.Errorf("decode config: %w", err)
 	}
+	cfg.Publication.RuntimeRoot, err = filepath.Abs(cfg.Publication.RuntimeRoot)
+	if err != nil {
+		return nil, err
+	}
+	cfg.Publication.SiteRoot, err = filepath.Abs(cfg.Publication.SiteRoot)
+	if err != nil {
+		return nil, err
+	}
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("validate config: %w", err)
 	}
@@ -144,6 +152,10 @@ func splitList(value string) []string {
 func defaultValues() map[string]interface{} {
 	return map[string]interface{}{
 		"env":                                    EnvironmentDev,
+		"publication.runtime_root":               filepath.Join("..", ".runtime", "publication"),
+		"publication.site_root":                  filepath.Join("..", "site"),
+		"publication.worker_enabled":             true,
+		"publication.build_timeout":              "5m",
 		"service.name":                           "cms-api",
 		"http.address":                           ":8080",
 		"http.trusted_proxies":                   []string{},

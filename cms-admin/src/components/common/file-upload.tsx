@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import type { FileRecord, FileUploadOptions } from "@/types/file";
 
 type FileUploadProps = FileUploadOptions & {
+ uploader?: typeof uploadFile;
   accept?: string;
   disabled?: boolean;
   buttonText?: string;
@@ -24,6 +25,7 @@ function getErrorMessage(error: unknown) {
 }
 
 export function FileUpload({
+  uploader = uploadFile,
   accept,
   disabled = false,
   buttonText = "选择文件",
@@ -52,7 +54,7 @@ export function FileUpload({
     setUploading(true);
 
     try {
-      const uploadedFile = await uploadFile(file, {
+      const uploadedFile = await uploader(file, {
         businessModule,
         remark,
       });

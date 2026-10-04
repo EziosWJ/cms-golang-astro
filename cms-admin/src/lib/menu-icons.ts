@@ -48,6 +48,7 @@ const MENU_ICON_MAP: Record<string, LucideIcon> = {
   log: ScrollText,
   logs: ScrollText,
   file: FileText,
+  "file-text": FileText,
   files: FileText,
   database: Database,
   permission: KeyRound,

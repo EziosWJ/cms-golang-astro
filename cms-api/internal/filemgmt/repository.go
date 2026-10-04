@@ -3,6 +3,7 @@ package filemgmt
 import (
 	"context"
 	"errors"
+	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/media"
 	"strconv"
 
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/audit"
@@ -82,6 +83,9 @@ func (r *Repository) Delete(ctx context.Context, id int64, e AuditEvent) error {
 		if err := tx.Model(&File{}).Where("id=? AND deleted=0", id).Update("deleted", 1).Error; err != nil {
 			return err
 		}
+		if err := media.ProtectDelete(tx, []int64{id}); err != nil {
+			return err
+		}
 		return audit.RecordOn(ctx, tx, e)
 	})
 }
@@ -96,6 +100,9 @@ func (r *Repository) DeleteBatch(ctx context.Context, ids []int64, e AuditEvent)
 			return ErrNotFound
 		}
 		if err := tx.Model(&File{}).Where("id IN ? AND deleted=0", ids).Update("deleted", 1).Error; err != nil {
+			return err
+		}
+		if err := media.ProtectDelete(tx, ids); err != nil {
 			return err
 		}
 		for _, id := range ids {

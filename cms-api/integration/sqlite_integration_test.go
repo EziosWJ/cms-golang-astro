@@ -44,14 +44,14 @@ func TestSQLiteMigrationLifecycleAndBackup(t *testing.T) {
 	if err := database.GORM.Table("sys_user").Count(&users).Error; err != nil {
 		t.Fatalf("count SQLite users: %v", err)
 	}
-	if err := database.GORM.Table("sys_menu").Count(&menus).Error; err != nil {
+	if err := database.GORM.Table("sys_menu").Where("permission_code LIKE ?", "system%").Count(&menus).Error; err != nil {
 		t.Fatalf("count SQLite menus: %v", err)
 	}
 	if err := database.GORM.Table("sys_config").Count(&configs).Error; err != nil {
 		t.Fatalf("count SQLite configs: %v", err)
 	}
 	if users != 1 || menus != 11 || configs != 1 {
-		t.Fatalf("seed counts = users %d, menus %d, configs %d; want 1, 11, 1", users, menus, configs)
+		t.Fatalf("seed counts = users %d, menus %d, configs %d; want 1, 11 system menus, 1", users, menus, configs)
 	}
 	if err := database.Close(); err != nil {
 		t.Fatalf("close SQLite database: %v", err)

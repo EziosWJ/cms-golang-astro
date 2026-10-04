@@ -27,6 +27,7 @@ cors:
     - Authorization
     - Content-Type
     - X-Request-ID
+    - Idempotency-Key
   exposed_headers:
     - X-Request-ID
   max_age: 12h
@@ -62,3 +63,9 @@ log:
   level: info
   format: json
   add_source: false
+
+publication:
+  worker_enabled: true
+  runtime_root: ../.runtime/publication
+  site_root: ../site
+  build_timeout: 5m

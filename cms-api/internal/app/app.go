@@ -10,14 +10,19 @@ import (
 
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/auth"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/config"
+	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/content"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/dept"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/dictionary"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/filemgmt"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/logmgmt"
+	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/media"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/notification"
 	platformhttp "github.com/EziosWJ/cms-golang-astro/cms-api/internal/platform/http"
+	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/publishing"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/rbac"
+	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/siteconfig"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/sysconfig"
+	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/taxonomy"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/usermgmt"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/webui"
 )
@@ -35,6 +40,11 @@ type Dependencies struct {
 	File         *filemgmt.Service
 	Log          *logmgmt.Service
 	Notification *notification.Service
+	Content      *content.Service
+	Taxonomy     *taxonomy.Handler
+	Media        *media.Handler
+	SiteConfig   *siteconfig.Handler
+	Publishing   *publishing.Handler
 }
 
 // Application is the assembled HTTP application and its process logger.
@@ -81,6 +91,26 @@ func New(cfg config.Config, readiness platformhttp.ReadinessChecker, deps Depend
 		return nil, fmt.Errorf("create authentication handler: %w", err)
 	}
 	auth.RegisterRoutes(router, authHandler)
+	if deps.Publishing != nil {
+		deps.Publishing.RegisterPreview(router)
+	}
+	if deps.Content != nil {
+		contentAPI := router.Group("/api/v1")
+		contentAPI.Use(auth.BearerMiddleware(deps.Auth))
+		content.NewHandler(deps.Content).Register(contentAPI)
+		if deps.Publishing != nil {
+			deps.Publishing.Register(contentAPI)
+		}
+		if deps.Taxonomy != nil {
+			deps.Taxonomy.Register(contentAPI)
+		}
+		if deps.Media != nil {
+			deps.Media.Register(contentAPI)
+		}
+		if deps.SiteConfig != nil {
+			deps.SiteConfig.Register(contentAPI)
+		}
+	}
 
 	system := router.Group("/api/system")
 	system.Use(
@@ -126,6 +156,11 @@ func New(cfg config.Config, readiness platformhttp.ReadinessChecker, deps Depend
 		return nil, fmt.Errorf("create file handler: %w", err)
 	}
 	filemgmt.RegisterRoutes(system, fileHandler)
+	if deps.Media != nil {
+		mediaAPI := router.Group("/api/v1")
+		mediaAPI.Use(auth.BearerMiddleware(deps.Auth), platformhttp.MultipartProtection(platformhttp.MultipartProtectionConfig{Policies: map[string]platformhttp.MultipartPolicy{"/api/v1/media/upload": {MaxBodyBytes: filemgmt.MaxSingleBodySize}, "/api/v1/media/upload-batch": {MaxBodyBytes: filemgmt.MaxBatchBodySize}}, MaxConcurrent: 8, Logger: logger}))
+		filemgmt.RegisterMediaOperations(mediaAPI, fileHandler, deps.Media.UploadGuard())
+	}
 
 	logHandler, err := logmgmt.NewHandler(deps.Log)
 	if err != nil {

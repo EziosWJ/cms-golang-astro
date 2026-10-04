@@ -1,0 +1,8 @@
+---
+import Blog from '../../layouts/Blog.astro';
+import { terms, articles, articleURL, formatDate } from '../../lib/content';
+export function getStaticPaths() { return terms('tag').map((term) => ({ params: { slug: term.url }, props: { term } })); }
+const { term } = Astro.props;
+const selected = articles.filter((article) => (article.revision.taxonomy ?? []).some((value) => value.id === term.id));
+---
+<Blog title={term.name}><h1>{term.name}</h1><ul class="articles">{selected.map((article) => <li><h2><a href={articleURL(article)}>{article.revision.title}</a></h2><p class="meta">{formatDate(article.revision.displayDate)}</p></li>)}</ul></Blog>

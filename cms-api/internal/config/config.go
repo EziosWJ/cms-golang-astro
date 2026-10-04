@@ -22,16 +22,24 @@ const (
 // Config contains all process-level configuration. Environment-specific YAML
 // may contain deployment credentials; APP_ environment variables override YAML.
 type Config struct {
-	Environment string         `koanf:"env"`
-	Service     ServiceConfig  `koanf:"service"`
-	HTTP        HTTPConfig     `koanf:"http"`
-	Swagger     SwaggerConfig  `koanf:"swagger"`
-	CORS        CORSConfig     `koanf:"cors"`
-	Database    DatabaseConfig `koanf:"database"`
-	File        FileConfig     `koanf:"file"`
-	JWT         JWTConfig      `koanf:"jwt"`
-	Auth        AuthConfig     `koanf:"auth"`
-	Log         LogConfig      `koanf:"log"`
+	Publication PublicationConfig `koanf:"publication"`
+	Environment string            `koanf:"env"`
+	Service     ServiceConfig     `koanf:"service"`
+	HTTP        HTTPConfig        `koanf:"http"`
+	Swagger     SwaggerConfig     `koanf:"swagger"`
+	CORS        CORSConfig        `koanf:"cors"`
+	Database    DatabaseConfig    `koanf:"database"`
+	File        FileConfig        `koanf:"file"`
+	JWT         JWTConfig         `koanf:"jwt"`
+	Auth        AuthConfig        `koanf:"auth"`
+	Log         LogConfig         `koanf:"log"`
+}
+
+type PublicationConfig struct {
+	WorkerEnabled bool          `koanf:"worker_enabled"`
+	RuntimeRoot   string        `koanf:"runtime_root"`
+	SiteRoot      string        `koanf:"site_root"`
+	BuildTimeout  time.Duration `koanf:"build_timeout"`
 }
 
 type ServiceConfig struct {

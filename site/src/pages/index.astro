@@ -1,15 +1,5 @@
-<!doctype html>
-<html lang="zh-CN">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width" />
-    <meta name="description" content="由 CMS 管理的个人博客。" />
-    <title>CMS 博客</title>
-  </head>
-  <body>
-    <main>
-      <h1>CMS 博客</h1>
-      <p>站点基础工程已就绪。</p>
-    </main>
-  </body>
-</html>
+---
+import Blog from '../layouts/Blog.astro';
+import { articles, articleURL, formatDate } from '../lib/content';
+---
+<Blog><h1>文章</h1>{articles.length ? <ul class="articles">{articles.map((article) => <li><h2><a href={articleURL(article)}>{article.revision.title}</a></h2><p class="meta">{formatDate(article.revision.displayDate)}</p>{article.revision.summary && <p>{article.revision.summary}</p>}</li>)}</ul> : <p>暂无已发布文章。</p>}</Blog>

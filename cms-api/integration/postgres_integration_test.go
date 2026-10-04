@@ -827,7 +827,7 @@ func runMigrationsWithEnvironment(t *testing.T, root, dsn, environment string) {
 func integrationEnvironment(t *testing.T, dsn, environmentName string) []string {
 	t.Helper()
 	databaseConfig := databaseConfigFromDSN(t, dsn)
-	environment := make([]string, 0, len(os.Environ())+5)
+	environment := make([]string, 0, len(os.Environ())+6)
 	for _, entry := range os.Environ() {
 		if strings.HasPrefix(entry, "APP_DATABASE__") || strings.HasPrefix(entry, "APP_JWT__SECRET=") || strings.HasPrefix(entry, "APP_ENV=") || strings.HasPrefix(entry, "APP_CONFIG_PROFILE=") {
 			continue
@@ -836,6 +836,7 @@ func integrationEnvironment(t *testing.T, dsn, environmentName string) []string 
 	}
 	return append(environment,
 		"APP_ENV="+environmentName,
+		"APP_DATABASE__DRIVER=postgres",
 		"APP_DATABASE__URL="+databaseConfig.URL,
 		"APP_DATABASE__USERNAME="+databaseConfig.Username,
 		"APP_DATABASE__PASSWORD="+databaseConfig.Password,

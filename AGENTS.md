@@ -12,4 +12,5 @@
 - Admin 嵌入 CMS 二进制；Astro 独立构建。`build:cms` 与 `build:site` 相互独立。
 - 开发运行数据放入 `.runtime/`，生产运行数据放在仓库之外；本地配置及密钥不进入 Git。
 - 修改管理后台时，遵循 `cms-admin/AGENTS.md` 和现有设计体系。
+- 使用 Playwright 或浏览器验证时，复用本机已安装并验证的 Playwright `1.63.0` 与 Chromium `153.0.8010.12`，禁止通过 `npx` 下载或安装新版本。
 - 完成实现后执行适用的 Taskfile 检查；Phase 0 总体验收执行 `task check`。报告未能执行的检查及原因。

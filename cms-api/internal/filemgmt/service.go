@@ -2,6 +2,7 @@ package filemgmt
 
 import (
 	"context"
+	_ "golang.org/x/image/webp"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
@@ -51,16 +52,11 @@ func (s *Service) UploadContent(ctx context.Context, m AuditMetadata, input Uplo
 }
 
 func (s *Service) uploadReader(ctx context.Context, m AuditMetadata, input UploadInput, businessModule, remark string) (File, error) {
-	if input.Reader == nil || strings.TrimSpace(input.Filename) == "" || input.Size == 0 {
-		return File{}, ErrFileEmpty
-	}
-	if input.Size > MaxFileSize {
-		return File{}, ErrFileTooLarge
-	}
-	mimeType, err := validateContentType(input.ContentType, input.Filename, input.Reader)
+	mimeType, err := ValidateUpload(input)
 	if err != nil {
 		return File{}, err
 	}
+
 	stored, err := s.storage.Save(ctx, input.Filename, input.Reader)
 	if err != nil {
 		return File{}, err
@@ -183,6 +179,8 @@ func canonicalImageMime(mediaType string) string {
 		return "image/jpeg"
 	case "image/gif":
 		return "image/gif"
+	case "image/webp":
+		return "image/webp"
 	default:
 		return ""
 	}
@@ -196,6 +194,8 @@ func imageMimeFromFormat(format string) string {
 		return "image/jpeg"
 	case "gif":
 		return "image/gif"
+	case "webp":
+		return "image/webp"
 	default:
 		return ""
 	}
@@ -209,6 +209,8 @@ func imageMimeFromExtension(filename string) string {
 		return "image/jpeg"
 	case ".gif":
 		return "image/gif"
+	case ".webp":
+		return "image/webp"
 	default:
 		return ""
 	}
@@ -280,4 +282,15 @@ func stringPtr(value string) *string {
 		return nil
 	}
 	return &value
+}
+
+// ValidateUpload checks the same bounded content contract for import preflight.
+func ValidateUpload(input UploadInput) (string, error) {
+	if input.Reader == nil || strings.TrimSpace(input.Filename) == "" || input.Size <= 0 {
+		return "", ErrFileEmpty
+	}
+	if input.Size > MaxFileSize {
+		return "", ErrFileTooLarge
+	}
+	return validateContentType(input.ContentType, input.Filename, input.Reader)
 }

@@ -47,7 +47,7 @@ task db:migrate:sqlite
 task dev
 ```
 
-API 默认 `http://localhost:8099`，Admin 默认 `http://localhost:5173`，Astro 默认 `http://localhost:4321`。Admin 开发请求由 Vite 代理到 API。迁移创建的开发管理员为 `admin / admin123`；首次登录后更改密码，生产部署前修改种子凭据。
+API 默认 `http://localhost:8099`，Admin 默认 `http://localhost:5173`，正式发布站点为 `http://localhost:8081`，Astro 模板开发服务器为 `http://localhost:4321`。CMS 主程序默认内置发布 worker，`task dev` 自动运行，处理后台提交的发布和预览任务；正式站点在首次配置发布成功前返回 404。Admin 开发请求由 Vite 代理到 API。迁移创建的开发管理员为 `admin / admin123`；首次登录后更改密码，生产部署前修改种子凭据。
 
 数据库默认使用 `.runtime/cms.db`。API 启动不会自动迁移；先显式执行数据库任务，再启动服务。
 
@@ -55,7 +55,7 @@ API 默认 `http://localhost:8099`，Admin 默认 `http://localhost:5173`，Astr
 
 | 命令 | 用途 |
 | --- | --- |
-| `task dev` | 同时启动 API、Admin、Astro |
+| `task dev` | 同时启动含内置 worker 的 API、Admin、正式产物静态服务与 Astro 开发服务器 |
 | `task dev:cms` | 启动 API 与 Admin |
 | `task dev:site` | 只启动 Astro |
 | `task api:sqlite` | 只启动 SQLite API |
@@ -93,3 +93,11 @@ API 产物为 `bin/cms-api`（Windows 带 `.exe`），内嵌 Admin，无需 Node
 - [本地验收记录](docs/specs/phase-0-validation.md)：通过的检查和待补验收。
 
 初始化源码来自 `EziosWJ/base-project-golang` 的源码快照，未继承其 Git 历史。项目身份统一为 `EziosWJ/cms-golang-astro`；该来源说明仅用于记录 provenance。
+
+### 发布执行器与维护
+
+默认 `publication.worker_enabled: true`，启动 CMS 自动处理发布及预览队列。后台“发布与预览任务”显示内置执行器状态，并支持暂停、恢复。暂停先等待当前任务结束，只有显示“已暂停”才可运行清理命令；暂停期间新任务排队。CMS 退出给当前任务 30 秒收尾，超时取消；中断任务需明确重试。
+
+独立部署时设置 `APP_PUBLICATION__WORKER_ENABLED=false`，另运行 `task worker:sqlite`。两种模式共用站点锁，不能同时执行。Node/site 依赖缺失不阻止编辑，但会拒绝新发布任务；修复依赖后自动恢复。公开静态站点仍由独立服务提供。
+
+维护暂停属于当前进程状态，CMS 重启会恢复默认执行；维护期间不要重启 CMS 或启用自动重启。操作与验收见 [执行器规格](docs/specs/embedded-publication-worker.md)。

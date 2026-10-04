@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .article-markdown-preview {
+    @apply text-sm leading-relaxed text-text-primary;
+    overflow-wrap: anywhere;
+  }
+  .article-markdown-preview > * + * { @apply mt-space-3; }
+  .article-markdown-preview h1 { @apply text-2xl font-semibold; }
+  .article-markdown-preview h2 { @apply text-xl font-semibold; }
+  .article-markdown-preview h3 { @apply text-lg font-semibold; }
+  .article-markdown-preview ul { @apply list-disc pl-space-6; }
+  .article-markdown-preview ol { @apply list-decimal pl-space-6; }
+  .article-markdown-preview pre { @apply overflow-auto rounded-control bg-neutral-background p-space-3; }
+  .article-markdown-preview code { @apply whitespace-pre-wrap font-mono; }
+  .article-markdown-preview table { @apply block max-w-full overflow-auto border-collapse; }
+  .article-markdown-preview th, .article-markdown-preview td { @apply border border-border px-space-3 py-space-2; }
+  .article-markdown-preview a { @apply text-primary underline; }
+  .article-markdown-preview blockquote { @apply border-l-4 border-border pl-space-4 text-text-secondary; }
+  .article-markdown-preview img { @apply max-w-full; }
+}
+
 :root {
   --color-primary: #1677ff;
   --color-primary-hover: #155eef;

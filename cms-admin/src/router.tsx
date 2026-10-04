@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
 import { RequireAuth } from "@/components/auth/require-auth";
 import { AppShell } from "@/components/layout/app-shell";
 import { AccountProfilePage } from "@/pages/account-profile";
@@ -18,6 +19,13 @@ import { SystemRolesPage } from "@/pages/system/roles";
 import { UsersPage } from "@/pages/system/users";
 import { NotificationsPage } from "@/pages/notifications";
 import { NotificationManagePage } from "@/pages/system/notifications";
+import { ArticlesPage } from "@/pages/content/articles";
+import { TaxonomyPage } from "@/pages/content/taxonomy";
+import { MediaPage } from "@/pages/content/media";
+import { PublicationsPage } from "@/pages/content/publications";
+import { SiteConfigPage } from "@/pages/content/site-config";
+
+const ArticleEditorPage = lazy(() => import("@/pages/content/articles/editor").then((module) => ({ default: module.ArticleEditorPage })));
 
 export const router = createBrowserRouter([
   {
@@ -32,6 +40,13 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
+      { path: "content/publications", element: <PublicationsPage /> },
+      { path: "content/site-config", element: <SiteConfigPage /> },
+      { path: "content/media", element: <MediaPage /> },
+      { path: "content/taxonomy", element: <TaxonomyPage /> },
+      { path: "content/articles", element: <ArticlesPage /> },
+      { path: "content/articles/new", element: <Suspense fallback={<p role="status">加载编辑器…</p>}><ArticleEditorPage /></Suspense> },
+      { path: "content/articles/:id", element: <Suspense fallback={<p role="status">加载编辑器…</p>}><ArticleEditorPage /></Suspense> },
       {
         index: true,
         element: <Navigate to="/dashboard" replace />,

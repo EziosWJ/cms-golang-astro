@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { formatContentDate, parseContentDate } from '../cms-admin/src/lib/content-date.ts';
+assert.equal(formatContentDate('2026-10-04T01:02:03Z', 'Asia/Shanghai'), '2026-10-04T09:02:03');
+assert.equal(parseContentDate('2026-10-04T09:02:03', 'Asia/Shanghai'), '2026-10-04T01:02:03.000Z');
+assert.equal(parseContentDate('2026-10-04T09:02', 'UTC'), '2026-10-04T09:02:00.000Z');
+assert.equal(parseContentDate('2026-10-04T13:00:00', 'Asia/Kathmandu'), '2026-10-04T07:15:00.000Z');
+assert.throws(() => parseContentDate('2026-03-08T02:30:00', 'America/New_York'), /不存在/);
+assert.equal(parseContentDate('2026-11-01T01:30:00', 'America/New_York'), '2026-11-01T05:30:00.000Z');
+assert.equal(parseContentDate('', 'UTC'), null);
+console.log('Content dates: UTC, IANA offsets, seconds, DST gap/fold passed.');

@@ -62,11 +62,11 @@ tasks:
       - npm run dev -- --host 0.0.0.0
 
   dev:
-    desc: Start the SQLite API, CMS Admin and Astro site
+    desc: Start the SQLite API, CMS Admin, publication worker, published site and Astro dev server
     deps:
       - db:migrate:sqlite
     cmds:
-      - task --parallel api:sqlite admin site
+      - task --parallel api:sqlite admin site:serve site
 
   dev:cms:
     desc: Start the SQLite API and CMS Admin
@@ -93,6 +93,12 @@ tasks:
     cmds:
       - go test ./...
 
+  backend:vet:
+    desc: Run Go static analysis without executing tests
+    dir: cms-api
+    cmds:
+      - go vet ./...
+
   db:backup:
     desc: Create an online SQLite backup; pass CLI flags through CLI_ARGS
     dir: cms-api
@@ -108,6 +114,11 @@ tasks:
     dir: cms-admin
     cmds:
       - npm run lint
+
+  admin:date:check:
+    desc: Check configured content dates and daylight saving transitions
+    cmds:
+      - node scripts/check-content-date.mjs
 
   admin:build:
     desc: Build CMS Admin
@@ -126,6 +137,7 @@ tasks:
     deps:
       - backend:check
       - admin:lint
+      - admin:date:check
       - admin:build
       - site:build
 
@@ -142,6 +154,10 @@ tasks:
       - go build -tags=embedweb -trimpath -o ../bin/cms-api{{.GOEXE}} ./cmd/api
       - go build -trimpath -o ../bin/cms-migrate{{.GOEXE}} ./cmd/migrate
       - go build -trimpath -o ../bin/cms-backup{{.GOEXE}} ./cmd/backup
+      - go build -trimpath -o ../bin/cms-worker{{.GOEXE}} ./cmd/worker
+      - go build -trimpath -o ../bin/cms-staticweb{{.GOEXE}} ./cmd/staticweb
+      - go build -trimpath -o ../bin/cms-maintain{{.GOEXE}} ./cmd/maintain
+      - go build -trimpath -o ../bin/cms-import{{.GOEXE}} ./cmd/import
 
   build:check:
     desc: Build release binaries and verify embedded frontend assets
@@ -174,3 +190,62 @@ tasks:
     dir: cms-api
     cmds:
       - go test -tags=integration ./integration -run 'Postgres|Auth|RBAC|SysConfig|Department|Dictionary|Login|File|Notification|UserPage' -count=1
+
+  worker:sqlite:
+    desc: Run the SQLite publication worker (explicitly migrate first)
+    dir: cms-api
+    env:
+      APP_CONFIG_PROFILE: sqlite
+      APP_DATABASE__URL: '{{.ROOT_DIR}}/.runtime/cms.db'
+      APP_FILE__STORAGE_ROOT: '{{.ROOT_DIR}}/.runtime/uploads'
+      APP_PUBLICATION__RUNTIME_ROOT: '{{.ROOT_DIR}}/.runtime/publication'
+      APP_PUBLICATION__SITE_ROOT: '{{.ROOT_DIR}}/site'
+    cmds:
+      - go run ./cmd/worker
+
+  worker:
+    desc: Run the publication worker using the configured database
+    dir: cms-api
+    env:
+      APP_FILE__STORAGE_ROOT: '{{.ROOT_DIR}}/.runtime/uploads'
+      APP_PUBLICATION__RUNTIME_ROOT: '{{.ROOT_DIR}}/.runtime/publication'
+      APP_PUBLICATION__SITE_ROOT: '{{.ROOT_DIR}}/site'
+    cmds:
+      - go run ./cmd/worker
+
+  site:serve:
+    desc: Serve published artifacts without CMS API or database access
+    dir: cms-api
+    cmds:
+      - go run ./cmd/staticweb --root '{{.ROOT_DIR}}/.runtime/publication' --address ':8081'
+
+  publication:cleanup:
+    desc: Report obsolete artifacts (stop worker first; pass -- --apply to delete)
+    dir: cms-api
+    env:
+      APP_CONFIG_PROFILE: sqlite
+      APP_DATABASE__URL: '{{.ROOT_DIR}}/.runtime/cms.db'
+      APP_FILE__STORAGE_ROOT: '{{.ROOT_DIR}}/.runtime/uploads'
+      APP_PUBLICATION__RUNTIME_ROOT: '{{.ROOT_DIR}}/.runtime/publication'
+    cmds:
+      - go run ./cmd/maintain {{.CLI_ARGS}}
+
+  content:import:
+    desc: Preflight legacy content; requires -- --source PATH --source-id ID --actor-id ID
+    dir: cms-api
+    env:
+      APP_CONFIG_PROFILE: sqlite
+      APP_DATABASE__URL: '{{.ROOT_DIR}}/.runtime/cms.db'
+      APP_FILE__STORAGE_ROOT: '{{.ROOT_DIR}}/.runtime/uploads'
+      APP_PUBLICATION__RUNTIME_ROOT: '{{.ROOT_DIR}}/.runtime/publication'
+      APP_PUBLICATION__SITE_ROOT: '{{.ROOT_DIR}}/site'
+    cmds:
+      - go run ./cmd/import {{.CLI_ARGS}}
+
+  content:legacy:check:
+    desc: Validate the provided read-only legacy source in an isolated database
+    dir: cms-api
+    env:
+      CMS_LEGACY_EVIDENCE_ROOT: '{{.ROOT_DIR}}/.runtime/phase-1/legacy-real'
+    cmds:
+      - go test -tags=integration ./integration -run TestSQLiteLegacyRealSource -count=1 -v

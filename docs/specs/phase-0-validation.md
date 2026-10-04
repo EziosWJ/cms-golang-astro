@@ -36,3 +36,7 @@
 - 全部服务：`task dev`
 
 上述服务启动命令需要允许本地端口监听的环境。本次没有创建远端仓库、推送源码或继承脚手架 Git 历史。
+
+## Issue #2 后续验收
+
+本记录描述此前受限环境。2026-10-03 在可监听端口和使用 Docker 的环境中补验、修复 PostgreSQL 集成环境，并记录仍未完成的远端 CI 和 Windows/macOS 验收，见 [Issue #2 运行验收](issue-2-phase-0-validation.md)。

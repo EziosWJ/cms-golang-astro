@@ -3,6 +3,7 @@ package filemgmt
 import (
 	"context"
 	"errors"
+	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/media"
 	"mime"
 	"net/http"
 	"net/url"
@@ -499,9 +500,19 @@ func writeError(c *gin.Context, err error) {
 		platformhttp.WriteError(c, http.StatusBadRequest, platformhttp.CodeBadRequest, ErrMultipartMalformed.Error(), nil)
 	case errors.Is(err, ErrNotFound):
 		platformhttp.WriteError(c, http.StatusOK, platformhttp.CodeNotFound, ErrNotFound.Error(), nil)
-	case errors.Is(err, ErrInvalid), errors.Is(err, ErrFileEmpty), errors.Is(err, ErrFileTooLarge), errors.Is(err, ErrInvalidImage):
+	case errors.Is(err, media.ErrReferenced), errors.Is(err, ErrInvalid), errors.Is(err, ErrFileEmpty), errors.Is(err, ErrFileTooLarge), errors.Is(err, ErrInvalidImage):
 		platformhttp.WriteError(c, http.StatusOK, platformhttp.CodeBadRequest, err.Error(), nil)
 	default:
 		platformhttp.WriteError(c, http.StatusInternalServerError, platformhttp.CodeInternalError, "系统错误", nil)
 	}
+}
+
+// RegisterMediaOperations reuses the existing bounded upload and deletion handlers.
+func RegisterMediaOperations(r gin.IRouter, h *Handler, guard gin.HandlerFunc) {
+	g := r.Group("/media")
+	g.Use(guard)
+	g.POST("/upload", h.upload)
+	g.POST("/upload-batch", h.uploadBatch)
+	g.DELETE("/:id", h.delete)
+	g.POST("/batch-delete", h.deleteBatch)
 }

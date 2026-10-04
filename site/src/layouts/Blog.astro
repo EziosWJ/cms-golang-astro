@@ -1,0 +1,15 @@
+---
+import { config, mediaURL, withBase } from '../lib/content';
+const { title = config.siteName, description = config.description } = Astro.props;
+---
+<!doctype html>
+<html lang={config.language}>
+<head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width" /><meta name="description" content={description} /><title>{title}</title><link rel="canonical" href={new URL(Astro.url.pathname, config.publicUrl).href} /></head>
+<body>
+<header><a class="brand" href={withBase('/')}>{config.siteName}</a><p>{config.description}</p><nav aria-label="博客导航"><a href={withBase('/')}>文章</a><a href={withBase('/categories/')}>分类</a><a href={withBase('/tags/')}>标签</a></nav></header>
+<main><slot /></main>
+<footer>{config.avatarMediaId && <img src={mediaURL(config.avatarMediaId)} alt={config.authorName} width="48" height="48" />}<strong>{config.authorName}</strong><p>{config.authorBio}</p></footer>
+<style is:global>
+:root{font-family:system-ui,"Noto Sans SC",sans-serif;color:#1f2937;background:#fafafa;line-height:1.8}body{max-width:860px;margin:auto;padding:24px}header{border-bottom:1px solid #e5e7eb;padding:16px 0 24px}.brand{font-size:24px;font-weight:650;text-decoration:none}nav{display:flex;gap:24px}a{color:#155eef}main{min-height:50vh;padding:32px 0}footer{border-top:1px solid #e5e7eb;padding:24px 0;color:#4b5563}.articles{padding:0;list-style:none}.articles>li{padding:20px 0;border-bottom:1px solid #e5e7eb}.articles h2{margin:0;font-size:20px}.meta{color:#6b7280;font-size:14px}.taxonomy{display:flex;flex-wrap:wrap;gap:12px;padding:0;list-style:none}.prose{overflow-wrap:anywhere}.prose img{max-width:100%;height:auto}.prose table{display:block;max-width:100%;overflow:auto;border-collapse:collapse}.prose th,.prose td{border:1px solid #d1d5db;padding:8px 12px}.prose pre{padding:16px;overflow:auto;border-radius:8px;font-size:14px}.prose pre::before{content:attr(data-language);display:block;font:12px system-ui;color:#6b7280}.cover{max-width:100%;height:auto}h1{font-size:28px;line-height:1.4}@media(max-width:600px){body{padding:16px}main{padding:24px 0}}
+</style>
+</body></html>
