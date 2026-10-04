@@ -1,0 +1,348 @@
+/*
+ * CMS 登录页页面级视觉覆盖。
+ * Token 取值来自素材包 design-tokens.css（tmp/cms-login-assets/design-tokens.css），
+ * 仅作用于登录页，不改动后台通用 token 与组件。覆盖说明见 design-system/pages/login.md。
+ */
+.login-page {
+  --cms-brand: #1677ff;
+  --cms-brand-hover: #0f6ae6;
+  --cms-brand-soft: #eaf3ff;
+  --cms-text: #10213d;
+  --cms-text-muted: #75849a;
+  --cms-border: #dce6f3;
+  --cms-bg: #f5f9ff;
+  --cms-card: #ffffff;
+  --cms-success: #19b568;
+  --cms-radius-card: 24px;
+  --cms-radius-control: 12px;
+  --cms-shadow-card: 0 20px 55px rgba(36, 76, 120, 0.14);
+}
+
+/* 右侧表单区底色 */
+.login-panel {
+  background:
+    radial-gradient(90% 60% at 88% 2%, rgba(211, 229, 255, 0.55) 0%, rgba(211, 229, 255, 0) 60%),
+    radial-gradient(70% 50% at 2% 98%, rgba(226, 238, 255, 0.6) 0%, rgba(226, 238, 255, 0) 62%),
+    var(--cms-bg);
+}
+
+/* 左侧品牌区底色与光晕 */
+.login-brand {
+  background:
+    radial-gradient(120% 85% at 12% 8%, #ffffff 0%, rgba(255, 255, 255, 0) 58%),
+    linear-gradient(148deg, #f3f8ff 0%, #eaf2ff 52%, #e2ecff 100%);
+}
+
+/* 背景网格：平铺 SVG，按径向遮罩淡出 */
+.login-brand__grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("../assets/login/decor/grid-tile.svg");
+  background-size: 40px 40px;
+  -webkit-mask-image: radial-gradient(
+    120% 95% at 24% 14%,
+    #000 0%,
+    rgba(0, 0, 0, 0.5) 52%,
+    transparent 84%
+  );
+  mask-image: radial-gradient(
+    120% 95% at 24% 14%,
+    #000 0%,
+    rgba(0, 0, 0, 0.5) 52%,
+    transparent 84%
+  );
+}
+
+/* 底部柔和波形与轨道圆环 */
+.login-brand__wave {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 54%;
+  pointer-events: none;
+  background: url("../assets/login/decor/soft-wave.svg") no-repeat center bottom / 100% 100%;
+}
+
+.login-brand__orbit {
+  position: absolute;
+  right: -110px;
+  top: 46%;
+  width: 680px;
+  height: 680px;
+  pointer-events: none;
+  transform: translateY(-50%);
+  background: url("../assets/login/decor/orbit.svg") no-repeat center / contain;
+}
+
+/* 虚线圆环装饰 */
+.login-brand__arc {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 9999px;
+  border: 1.5px dashed rgba(124, 180, 255, 0.5);
+}
+
+/* Hero 插画容器：占据品牌文案与能力区之间的剩余空间 */
+.login-hero {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* 绝对定位 + contain：任何高度下都等比缩放，不撑高容器、不产生溢出或变形 */
+.login-hero img {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 100%;
+  height: 100%;
+  max-width: 760px;
+  object-fit: contain;
+}
+
+/* ---- 右侧卡片：尺寸取自视觉稿实测（1672×941 稿，1:1 CSS px）----
+   卡片宽 582、内边距 52、输入框高 58、提交按钮 60、勾选框 22。 */
+.login-card {
+  /* 视觉稿中卡片占视口 34.8%，此处按同比例收敛，并设上限避免大屏过宽 */
+  max-width: clamp(340px, 34.8vw, 582px);
+}
+
+.login-card__body {
+  padding: clamp(28px, 3.1vw, 52px);
+}
+
+.login-card form label {
+  font-size: 16px;
+  line-height: 26px;
+}
+
+.login-card .login-field-icon {
+  left: 26px;
+}
+
+.login-card .login-eye-button {
+  right: 22px;
+}
+
+.login-card .login-input {
+  height: 58px;
+  border-radius: var(--cms-radius-control);
+  border-color: var(--cms-border);
+  background-color: var(--cms-card);
+  padding-left: 68px;
+  padding-right: 60px;
+  font-size: 16px;
+  color: var(--cms-text);
+}
+
+.login-card .login-input::placeholder {
+  color: var(--cms-text-muted);
+}
+
+.login-card .login-input:hover {
+  border-color: #c6d8f0;
+}
+
+.login-card .login-input:focus {
+  border-color: var(--cms-brand);
+  box-shadow: 0 0 0 3px rgba(22, 119, 255, 0.12);
+}
+
+.login-card .login-checkbox {
+  height: 22px;
+  width: 22px;
+  border-radius: 5px;
+  border-color: var(--cms-border);
+  accent-color: var(--cms-brand);
+}
+
+.login-card .login-submit {
+  height: 60px;
+  border-radius: var(--cms-radius-control);
+  font-size: 17px;
+  box-shadow: 0 12px 26px rgba(22, 119, 255, 0.24);
+}
+
+.login-card .login-submit:hover:not(:disabled) {
+  background-color: var(--cms-brand-hover);
+  border-color: var(--cms-brand-hover);
+  box-shadow: 0 14px 30px rgba(22, 119, 255, 0.3);
+}
+
+/* 卡片内标题区：kicker 16 / h1 36 / 说明 15 */
+.login-card__kicker {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.login-card__title {
+  font-size: 36px;
+  line-height: 1.2;
+}
+
+.login-card__subtitle {
+  font-size: 15px;
+  line-height: 24px;
+}
+
+@media (max-width: 560px) {
+  .login-card__body {
+    padding: 32px 24px;
+  }
+
+  .login-card__title {
+    font-size: 30px;
+  }
+
+  .login-card .login-input {
+    height: 52px;
+    padding-left: 58px;
+    padding-right: 52px;
+  }
+
+  .login-card .login-field-icon {
+    left: 20px;
+  }
+
+  .login-card .login-eye-button {
+    right: 16px;
+  }
+
+  .login-card .login-submit {
+    height: 54px;
+  }
+}
+
+/* 左侧品牌区的尺寸：以视觉稿（1672×941）实测为准，随视口逐级收敛 */
+.login-brand__logo {
+  height: 72px;
+  width: 72px;
+  border-radius: 22px;
+}
+
+.login-brand__name {
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.login-brand__name-desc {
+  font-size: 16px;
+}
+
+.login-brand__title {
+  font-size: 52px;
+  line-height: 1.15;
+}
+
+.login-brand__kicker,
+.login-brand__subtitle {
+  font-size: 18px;
+}
+
+.login-brand__feature-icon {
+  height: 38px;
+  width: 38px;
+  border-radius: 11px;
+}
+
+.login-brand__feature-title {
+  font-size: 16px;
+}
+
+.login-brand__feature-desc {
+  font-size: 13px;
+}
+
+@media (max-height: 860px), (max-width: 1439px) {
+  .login-brand__logo {
+    height: 64px;
+    width: 64px;
+    border-radius: 18px;
+  }
+
+  .login-brand__name {
+    font-size: 26px;
+  }
+
+  .login-brand__name-desc {
+    font-size: 14px;
+  }
+
+  .login-brand__title {
+    font-size: 46px;
+  }
+
+  .login-brand__kicker,
+  .login-brand__subtitle {
+    font-size: 16px;
+  }
+
+  .login-brand__feature-icon {
+    height: 32px;
+    width: 32px;
+    border-radius: 9px;
+  }
+
+  .login-brand__feature-title {
+    font-size: 15px;
+  }
+
+  .login-brand__feature-desc {
+    font-size: 12px;
+  }
+}
+
+@media (max-height: 720px) {
+  .login-brand__logo {
+    height: 56px;
+    width: 56px;
+    border-radius: 16px;
+  }
+
+  .login-brand__name {
+    font-size: 22px;
+  }
+
+  .login-brand__name-desc {
+    font-size: 13px;
+  }
+
+  .login-brand__title {
+    font-size: 38px;
+  }
+
+  .login-brand__kicker,
+  .login-brand__subtitle {
+    font-size: 15px;
+  }
+
+  .login-brand__feature-icon {
+    height: 28px;
+    width: 28px;
+    border-radius: 8px;
+  }
+
+  .login-brand__feature-title {
+    font-size: 14px;
+  }
+}
+
+/* 密码可见态的划线：素材包只提供未划线图标 */
+.login-eye {
+  position: relative;
+  display: inline-flex;
+}
+
+.login-eye--off::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 22px;
+  height: 1.5px;
+  border-radius: 2px;
+  background-color: #8fa2bc;
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
