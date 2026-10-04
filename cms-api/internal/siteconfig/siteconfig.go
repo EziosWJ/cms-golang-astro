@@ -30,6 +30,8 @@ type Data struct {
 	AuthorName    string `json:"authorName"`
 	AuthorBio     string `json:"authorBio"`
 	AvatarMediaID *int64 `json:"avatarMediaId"`
+	Theme         string `json:"theme"`
+	ThemeVersion  string `json:"themeVersion"`
 }
 type Working struct {
 	Published  *Revision `gorm:"-" json:"published"`
@@ -79,6 +81,16 @@ func Validate(in Data) map[string]string {
 	if _, err := time.LoadLocation(in.Timezone); err != nil {
 		fields["timezone"] = "时区无效"
 	}
+	themeID := strings.TrimSpace(in.Theme)
+	if themeID == "" {
+		themeID = DefaultThemeID
+	}
+	theme, ok := LookupTheme(themeID)
+	if !ok {
+		fields["theme"] = "请选择有效主题"
+	} else if in.ThemeVersion != "" && in.ThemeVersion != theme.Version {
+		fields["theme"] = "主题版本已变化，请重新保存站点配置"
+	}
 	return fields
 }
 func Read(ctx context.Context, db *gorm.DB) (Working, error) {
@@ -87,9 +99,13 @@ func Read(ctx context.Context, db *gorm.DB) (Working, error) {
 	if err != nil {
 		return work, err
 	}
+	legacyTheme := strings.TrimSpace(work.Data.Theme) == "" || strings.TrimSpace(work.Data.ThemeVersion) == ""
+	work.Data = NormalizeLegacyTheme(work.Data)
 	var revision Revision
 	if err := db.WithContext(ctx).Where("version=?", work.Version).Take(&revision).Error; err == nil {
-		work.RevisionID = &revision.ID
+		if !legacyTheme {
+			work.RevisionID = &revision.ID
+		}
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return work, err
 	}
@@ -110,7 +126,12 @@ func Read(ctx context.Context, db *gorm.DB) (Working, error) {
 }
 func Save(ctx context.Context, tx *gorm.DB, version int64, in Data, meta audit.Metadata) (Working, error) {
 	var work Working
-	err := tx.WithContext(ctx).Transaction(func(db *gorm.DB) error {
+	resolved, err := ResolveTheme(in)
+	if err != nil {
+		return work, err
+	}
+	in = resolved
+	err = tx.WithContext(ctx).Transaction(func(db *gorm.DB) error {
 		now := time.Now().UTC()
 		result := db.Model(&Working{}).Where("id=1 AND version=?", version).Updates(map[string]any{"version": version + 1, "saved_at": now, "saved_by": meta.ActorID})
 		if result.Error != nil {
@@ -161,12 +182,14 @@ func (h *Handler) Register(r gin.IRouter) {
 	g := r.Group("/site-config")
 	g.Use(authz.Require(h.db, "content:config:edit"))
 	g.GET("", h.get)
+	g.GET("/themes", h.themes)
 	g.PUT("", h.save)
 }
 func (h *Handler) get(c *gin.Context) {
 	work, err := Read(c.Request.Context(), h.db)
 	reply(c, work, err)
 }
+func (h *Handler) themes(c *gin.Context) { platform.OK(c, Themes()) }
 func (h *Handler) save(c *gin.Context) {
 	var input struct {
 		ExpectedVersion *int64 `json:"expectedVersion"`
@@ -176,6 +199,12 @@ func (h *Handler) save(c *gin.Context) {
 		platform.WriteError(c, 400, 400, "配置参数无效", nil)
 		return
 	}
+	resolved, err := ResolveTheme(input.Data)
+	if err != nil {
+		platform.WriteError(c, 400, 400, "配置校验失败", map[string]string{"theme": "请选择有效主题"})
+		return
+	}
+	input.Data = resolved
 	fields := Validate(input.Data)
 	if len(fields) > 0 {
 		platform.WriteError(c, 400, 400, "配置校验失败", fields)
@@ -201,7 +230,7 @@ func reply(c *gin.Context, data any, err error) {
 		status = 409
 		message = err.Error()
 	}
-	if errors.Is(err, media.ErrInvalid) {
+	if errors.Is(err, media.ErrInvalid) || errors.Is(err, ErrThemeInvalid) {
 		status = 400
 		message = err.Error()
 	}

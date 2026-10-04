@@ -1,8 +1,9 @@
 ---
-import Blog from '../../layouts/Blog.astro';
-import { articles, renderMarkdown, taxonomyURL, mediaURL, formatDate } from '../../lib/content';
+import { PostArticleView } from '../../theme';
+import { articles, renderMarkdown } from '../../lib/content';
+import { themeSite, toThemeArticle } from '../../lib/theme-model';
 export function getStaticPaths() { return articles.map((article) => ({ params: { slug: article.revision.slug }, props: { article } })); }
 const { article } = Astro.props;
 const html = await renderMarkdown(article.revision.markdown);
 ---
-<Blog title={article.revision.title} description={article.revision.summary}><article><h1>{article.revision.title}</h1><p class="meta">{formatDate(article.revision.displayDate)} · 更新于 {formatDate(article.updatedAt)}</p>{article.revision.coverMediaId && <img class="cover" src={mediaURL(article.revision.coverMediaId)} alt="文章封面" />}<ul class="taxonomy">{(article.revision.taxonomy ?? []).map((term) => <li><a href={taxonomyURL(term)}>{term.name}</a></li>)}</ul><div class="prose" set:html={html} /></article></Blog>
+<PostArticleView site={themeSite} article={toThemeArticle(article)} html={html} />

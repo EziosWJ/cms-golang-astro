@@ -1,0 +1,6 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import type { ArticleListProps } from '../../types';
+const { site, articles } = Astro.props as ArticleListProps;
+---
+<BaseLayout site={site} title="归档"><div class="comic-page-heading"><span>ARCHIVE</span><h1>文章归档</h1></div>{articles.length ? <div class="comic-list">{articles.map((article) => <article><time>{article.dateLabel}</time><h2><a href={article.url}>{article.title}</a></h2>{article.summary && <p>{article.summary}</p>}</article>)}</div> : <div class="comic-empty">暂无已发布文章。</div>}</BaseLayout>

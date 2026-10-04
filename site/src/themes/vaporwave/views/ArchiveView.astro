@@ -1,0 +1,6 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import type { ArticleListProps } from '../../types';
+const { site, articles } = Astro.props as ArticleListProps;
+---
+<BaseLayout site={site} title="Archive"><div class="vapor-page-title"><small>DATABASE://ARCHIVE</small><h1>TRANSMISSIONS</h1></div>{articles.length ? <div class="vapor-list">{articles.map((article,index) => <article><span>{String(index+1).padStart(2,'0')}</span><time>{article.dateLabel}</time><h2><a href={article.url}>{article.title}</a></h2></article>)}</div> : <div class="vapor-empty">NO SIGNAL.</div>}</BaseLayout>

@@ -1,0 +1,6 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import type { TaxonomyDetailProps } from '../../types';
+const { site, term, articles } = Astro.props as TaxonomyDetailProps;
+---
+<BaseLayout site={site} title={term.name}><div class="vapor-page-title"><small>{term.kind.toUpperCase()}://FILTER</small><h1>{term.name}</h1><p>{term.count} SIGNALS FOUND</p></div><div class="vapor-list">{articles.map((article,index)=><article><span>{String(index+1).padStart(2,'0')}</span><time>{article.dateLabel}</time><h2><a href={article.url}>{article.title}</a></h2></article>)}</div></BaseLayout>

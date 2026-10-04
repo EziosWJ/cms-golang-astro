@@ -1,5 +1,5 @@
 ---
-import Blog from '../layouts/Blog.astro';
-import { withBase } from '../lib/content';
+import { NotFoundView } from '../theme';
+import { themeSite } from '../lib/theme-model';
 ---
-<Blog title="页面不存在"><h1>页面不存在</h1><p>文章可能已下线，或地址有误。</p><a href={withBase('/')}>返回文章列表</a></Blog>
+<NotFoundView site={themeSite} />

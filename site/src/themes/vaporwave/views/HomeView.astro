@@ -1,0 +1,6 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import type { ArticleListProps } from '../../types';
+const { site, articles } = Astro.props as ArticleListProps;
+---
+<BaseLayout site={site}><section class="vapor-hero"><p>SYS://PERSONAL_ARCHIVE</p><h1>{site.name}</h1><div>{site.description || 'Signal notes from software, systems and everyday life.'}</div></section><section><div class="vapor-title"><h2>LATEST_TRANSMISSIONS</h2><a href={site.archiveUrl}>VIEW_ALL [→]</a></div>{articles.length ? <div class="vapor-grid-cards">{articles.slice(0,12).map((article,index) => <article class="vapor-card"><span>#{String(index+1).padStart(2,'0')} / {article.dateLabel}</span><h3><a href={article.url}>{article.title}</a></h3>{article.summary && <p>{article.summary}</p>}<div class="vapor-tags">{article.tags.slice(0,4).map((tag) => <a href={tag.url}>#{tag.name}</a>)}</div></article>)}</div> : <div class="vapor-empty">NO SIGNAL.</div>}</section></BaseLayout>

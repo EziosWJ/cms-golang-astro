@@ -1,0 +1,6 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import type { TaxonomyDetailProps } from '../../types';
+const { site, term, articles } = Astro.props as TaxonomyDetailProps;
+---
+<BaseLayout site={site} title={term.name}><div class="comic-page-heading"><span>{term.kind.toUpperCase()}</span><h1>{term.name}</h1><p>{term.count} 篇文章</p></div><div class="comic-list">{articles.map((article) => <article><time>{article.dateLabel}</time><h2><a href={article.url}>{article.title}</a></h2>{article.summary && <p>{article.summary}</p>}</article>)}</div></BaseLayout>

@@ -1,0 +1,6 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import type { TaxonomyWallProps } from '../../types';
+const { site, title, terms } = Astro.props as TaxonomyWallProps;
+---
+<BaseLayout site={site} title={title}><div class="vapor-page-title"><small>INDEX://CLASSIFICATION</small><h1>{title.toUpperCase()}</h1></div>{terms.length ? <div class="vapor-term-wall">{terms.map((term)=><a href={term.url}><strong>{term.name}</strong><span>{term.count} SIGNALS</span></a>)}</div> : <div class="vapor-empty">NO DATA.</div>}</BaseLayout>

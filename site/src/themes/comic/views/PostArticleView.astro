@@ -1,0 +1,6 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import type { ArticleProps } from '../../types';
+const { site, article, html } = Astro.props as ArticleProps;
+---
+<BaseLayout site={site} title={article.title} description={article.summary}><article class="comic-article"><header><p class="comic-kicker">ARTICLE / {article.dateLabel}</p><h1>{article.title}</h1>{article.summary && <p class="comic-lead">{article.summary}</p>}<div class="comic-tags">{[...article.categories, ...article.tags].map((term) => <a href={term.url}>{term.kind === 'tag' ? '#' : ''}{term.name}</a>)}</div></header>{article.coverUrl && <img class="comic-cover" src={article.coverUrl} alt="文章封面" />}<div class="comic-prose" set:html={html} /><footer class="comic-article-footer">最后更新：{article.updatedLabel}</footer></article></BaseLayout>

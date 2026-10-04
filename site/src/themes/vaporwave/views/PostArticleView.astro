@@ -1,0 +1,6 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import type { ArticleProps } from '../../types';
+const { site, article, html } = Astro.props as ArticleProps;
+---
+<BaseLayout site={site} title={article.title} description={article.summary}><article class="vapor-article"><header><small>TRANSMISSION / {article.dateLabel}</small><h1>{article.title}</h1>{article.summary && <p>{article.summary}</p>}<div class="vapor-tags">{[...article.categories,...article.tags].map((term)=><a href={term.url}>{term.kind === 'tag' ? '#' : '//'}{term.name}</a>)}</div></header>{article.coverUrl && <img class="vapor-cover" src={article.coverUrl} alt="文章封面" />}<div class="vapor-prose" set:html={html} /><footer>LAST_SYNC: {article.updatedLabel}</footer></article></BaseLayout>

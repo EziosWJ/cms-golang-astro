@@ -1,0 +1,6 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import type { ArticleListProps } from '../../types';
+const { site, articles } = Astro.props as ArticleListProps;
+---
+<BaseLayout site={site}><section class="comic-hero"><p class="comic-kicker">PERSONAL NOTES / BUILD LOG</p><h1>{site.name}</h1><p>{site.description || '记录工程实践、思考与生活。'}</p></section><section><div class="comic-section-title"><h2>最新文章</h2><a href={site.archiveUrl}>查看全部 →</a></div>{articles.length ? <div class="comic-grid">{articles.slice(0, 12).map((article) => <article class="comic-card"><p class="comic-date">{article.dateLabel}</p><h3><a href={article.url}>{article.title}</a></h3>{article.summary && <p>{article.summary}</p>}<div class="comic-tags">{article.tags.slice(0,4).map((tag) => <a href={tag.url}>#{tag.name}</a>)}</div></article>)}</div> : <div class="comic-empty">暂无已发布文章。</div>}</section></BaseLayout>
