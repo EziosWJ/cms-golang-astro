@@ -1,13 +1,16 @@
 ---
 import '../styles/theme.css';
+import '../styles/fidelity.css';
 import type { BaseLayoutProps } from '../../types';
 import Nav from '../components/Nav.astro';
 import Footer from '../components/Footer.astro';
 const { site, title, description = site.description, type = 'website', canonical, noindex = false } = Astro.props as BaseLayoutProps;
 const pageTitle = title ? `${title} · ${site.name}` : site.name;
-let currentUrl: string | undefined = canonical;
-if (!currentUrl && site.publicUrl) {
-  try { currentUrl = new URL(Astro.url.pathname, site.publicUrl).href; } catch { currentUrl = undefined; }
+let currentUrl: string | undefined;
+if (site.publicUrl) {
+  try { currentUrl = new URL(canonical || Astro.url.pathname, site.publicUrl).href; } catch { currentUrl = canonical; }
+} else {
+  currentUrl = canonical;
 }
 const rssUrl = `${site.homeUrl.replace(/\/$/, '')}/rss.xml`;
 const sitemapUrl = `${site.homeUrl.replace(/\/$/, '')}/sitemap.xml`;
