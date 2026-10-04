@@ -32,3 +32,6 @@ coverage/
 .DS_Store
 Thumbs.db
 *:Zone.Identifier
+
+# Temp
+tmp/
