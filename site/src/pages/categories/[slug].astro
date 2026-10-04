@@ -1,8 +1,8 @@
 ---
 import { CategoryDetailView } from '../../theme';
 import { terms } from '../../lib/content';
-import { themeArticlesForTerm, themeSite, toThemeTerm } from '../../lib/theme-model';
+import { themeSite, themeTaxonomyDetail } from '../../lib/theme-model';
 export function getStaticPaths() { return terms('category').map((term) => ({ params: { slug: term.url }, props: { term } })); }
 const { term } = Astro.props;
 ---
-<CategoryDetailView site={themeSite} term={toThemeTerm(term)} articles={themeArticlesForTerm(term)} />
+<CategoryDetailView site={themeSite} {...themeTaxonomyDetail(term)} />

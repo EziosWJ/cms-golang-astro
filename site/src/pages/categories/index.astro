@@ -1,5 +1,6 @@
 ---
 import { CategoryWallView } from '../../theme';
-import { themeSite, themeTerms } from '../../lib/theme-model';
+import { themeSite, themeTaxonomyWall } from '../../lib/theme-model';
+const model = themeTaxonomyWall('category');
 ---
-<CategoryWallView site={themeSite} title="分类" terms={themeTerms('category')} />
+<CategoryWallView site={themeSite} title="分类" {...model} />

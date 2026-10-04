@@ -1,9 +1,10 @@
 ---
 import { PostArticleView } from '../../theme';
-import { articles, renderMarkdown } from '../../lib/content';
-import { themeSite, toThemeArticle } from '../../lib/theme-model';
+import { articles, renderMarkdownDocument } from '../../lib/content';
+import { themeArticleContext, themeSite } from '../../lib/theme-model';
 export function getStaticPaths() { return articles.map((article) => ({ params: { slug: article.revision.slug }, props: { article } })); }
 const { article } = Astro.props;
-const html = await renderMarkdown(article.revision.markdown);
+const document = await renderMarkdownDocument(article.revision.markdown);
+const context = themeArticleContext(article, document.headings);
 ---
-<PostArticleView site={themeSite} article={toThemeArticle(article)} html={html} />
+<PostArticleView site={themeSite} html={document.html} {...context} />

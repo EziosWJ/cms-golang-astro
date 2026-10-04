@@ -1,13 +1,14 @@
 import { readFile } from 'node:fs/promises';
 import { createMarkdownProcessor } from '@astrojs/markdown-remark';
 import { shikiConfig } from '../theme';
+import type { ThemeHeading } from '../themes/types';
 
 export type Taxonomy = { id: number; kind: 'category' | 'tag'; name: string; url: string };
 export type Revision = { articleId: number; title: string; slug: string; markdown: string; summary: string; displayDate: string | null; coverMediaId: number | null; taxonomy: Taxonomy[] };
 export type Article = { revision: Revision; firstPublishedAt: string; updatedAt: string };
 export type Config = { siteName: string; description: string; publicUrl: string; language: string; timezone: string; authorName: string; authorBio: string; avatarMediaId: number | null; theme: string; themeVersion: string };
 export type Snapshot = { config: { data: Config }; articles: Article[]; media: { file: { id: number; originalName: string; mimeType: string }; path: string }[] };
-const defaultSnapshot: Snapshot = { config: { data: { siteName: 'CMS 博客', description: '', publicUrl: 'http://localhost:8080', language: 'zh-CN', timezone: 'Asia/Shanghai', authorName: '作者', authorBio: '', avatarMediaId: null, theme: 'comic', themeVersion: '1.0.0' } }, articles: [], media: [] };
+const defaultSnapshot: Snapshot = { config: { data: { siteName: 'CMS 博客', description: '', publicUrl: 'http://localhost:8080', language: 'zh-CN', timezone: 'Asia/Shanghai', authorName: '作者', authorBio: '', avatarMediaId: null, theme: 'comic', themeVersion: '1.1.0' } }, articles: [], media: [] };
 const inputPath = process.env.CMS_INPUT_PATH;
 export const snapshot: Snapshot = inputPath ? JSON.parse(await readFile(inputPath, 'utf8')) : defaultSnapshot;
 export const config = snapshot.config.data;
@@ -18,8 +19,40 @@ export function taxonomyURL(term: Taxonomy) { return withBase(`/${term.kind === 
 export function mediaURL(id: number | null) { if (!id) return ''; const resource = snapshot.media.find((item) => item.file.id === id); if (!resource) throw new Error(`Manifest is missing media ${id}`); return withBase(resource.path); }
 export function terms(kind: Taxonomy['kind']) { const map = new Map<number, Taxonomy>(); for (const article of articles) for (const term of article.revision.taxonomy ?? []) if (term.kind === kind) map.set(term.id, term); return [...map.values()].sort((a, b) => a.name.localeCompare(b.name)); }
 export function formatDate(value: string | null) { return value ? new Intl.DateTimeFormat(config.language, { timeZone: config.timezone, dateStyle: 'medium' }).format(new Date(value)) : ''; }
+
 // Escape HTML nodes before rehype processing; raw HTML and editor directives stay text.
 function escapeRawHtml() { return (tree: { type: string; children?: typeof tree[] }) => { function walk(node: typeof tree) { if (node.type === 'html') node.type = 'text'; node.children?.forEach(walk); } walk(tree); }; }
 const markdownShikiConfig = { ...(shikiConfig as Record<string, unknown>), transformers: [{ name: 'cms-language-label', pre(node: { properties: Record<string, unknown> }) { node.properties['data-language'] = (this as { options: { lang?: string } }).options.lang ?? 'text'; } }] };
 const processor = createMarkdownProcessor({ gfm: true, smartypants: false, syntaxHighlight: 'shiki', shikiConfig: markdownShikiConfig as never, remarkPlugins: [escapeRawHtml] });
-export async function renderMarkdown(markdown: string) { const result = await (await processor).render(markdown); return result.code.replace(/(href|src)="(\/[^\"]*)"/g, (_match, attr, path) => `${attr}="${withBase(path)}"`); }
+
+function plainHeadingText(value: string) {
+  return value.replace(/<[^>]+>/g, '').replace(/&(?:amp|lt|gt|quot|#39);/g, ' ').replace(/\s+/g, ' ').trim();
+}
+function headingSlug(value: string) {
+  return value.normalize('NFKC').toLowerCase().replace(/[^\p{Letter}\p{Number}]+/gu, '-').replace(/^-+|-+$/g, '') || 'section';
+}
+function addHeadingIds(html: string): { html: string; headings: ThemeHeading[] } {
+  const headings: ThemeHeading[] = [];
+  const seen = new Map<string, number>();
+  const output = html.replace(/<h([23])([^>]*)>([\s\S]*?)<\/h\1>/g, (full, depthValue: string, attrs: string, body: string) => {
+    const depth = Number(depthValue) as 2 | 3;
+    const text = plainHeadingText(body);
+    const existing = attrs.match(/\sid=["']([^"']+)["']/)?.[1];
+    let slug = existing || headingSlug(text);
+    if (!existing) {
+      const count = seen.get(slug) ?? 0;
+      seen.set(slug, count + 1);
+      if (count) slug = `${slug}-${count + 1}`;
+    }
+    headings.push({ depth, text, slug });
+    return existing ? full : `<h${depth}${attrs} id="${slug}">${body}</h${depth}>`;
+  });
+  return { html: output, headings };
+}
+
+export async function renderMarkdownDocument(markdown: string) {
+  const result = await (await processor).render(markdown);
+  const rebased = result.code.replace(/(href|src)="(\/[^\"]*)"/g, (_match, attr, path) => `${attr}="${withBase(path)}"`);
+  return addHeadingIds(rebased);
+}
+export async function renderMarkdown(markdown: string) { return (await renderMarkdownDocument(markdown)).html; }

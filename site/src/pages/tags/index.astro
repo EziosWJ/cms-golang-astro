@@ -1,5 +1,6 @@
 ---
 import { TagWallView } from '../../theme';
-import { themeSite, themeTerms } from '../../lib/theme-model';
+import { themeSite, themeTaxonomyWall } from '../../lib/theme-model';
+const model = themeTaxonomyWall('tag');
 ---
-<TagWallView site={themeSite} title="标签" terms={themeTerms('tag')} />
+<TagWallView site={themeSite} title="标签" {...model} />

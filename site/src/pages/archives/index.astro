@@ -1,5 +1,5 @@
 ---
 import { ArchiveView } from '../../theme';
-import { themeArticles, themeSite } from '../../lib/theme-model';
+import { themeArchiveModel, themeSite } from '../../lib/theme-model';
 ---
-<ArchiveView site={themeSite} articles={themeArticles} />
+<ArchiveView site={themeSite} {...themeArchiveModel} />

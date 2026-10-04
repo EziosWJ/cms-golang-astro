@@ -30,8 +30,8 @@ var builtinThemes = []ThemeDefinition{
 	{
 		ID:            "comic",
 		Name:          "Comic",
-		Version:       "1.0.0",
-		Description:   "Neo-Brutalist 漫画风主题，强调粗线条、纸张感和高对比信息卡片。",
+		Version:       "1.1.0",
+		Description:   "主主题：Neo-Brutalist 漫画风，强调粗线条、半调纸张、分镜卡片与长文阅读体验。",
 		Preview:       "builtin:comic",
 		Compatibility: ThemeCompatibility{CMSThemeAPI: CMSThemeAPIV1},
 		Capabilities:  []string{"home", "article", "archive", "category", "tag", "404"},
