@@ -25,32 +25,21 @@ function isStoredAuth(value: unknown): value is StoredAuth {
 
 function readStoredAuth(): StoredAuth {
   const fallback: StoredAuth = { token: "", user: null };
-  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-  if (!raw) return fallback;
-
   try {
+    const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+    if (!raw) return fallback;
     const parsed = JSON.parse(raw) as unknown;
-    if (!isStoredAuth(parsed)) {
-      localStorage.removeItem(AUTH_STORAGE_KEY);
-      return fallback;
-    }
-
-    return {
-      token: parsed.token,
-      user: parsed.user ?? null,
-    };
-  } catch {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-    return fallback;
-  }
+    if (!isStoredAuth(parsed)) { localStorage.removeItem(AUTH_STORAGE_KEY); return fallback; }
+    return { token: parsed.token, user: parsed.user ?? null };
+  } catch { return fallback; }
 }
 
 function writeStoredAuth(token: string, user: CurrentUser | null) {
-  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token, user }));
+  try { localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ token, user })); } catch { /* Authentication remains usable in memory when browser storage is unavailable. */ }
 }
 
 function clearStoredAuth() {
-  localStorage.removeItem(AUTH_STORAGE_KEY);
+  try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch { /* In-memory authentication is still cleared. */ }
 }
 
 function redirectToLogin() {

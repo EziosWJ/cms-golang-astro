@@ -78,7 +78,7 @@ function filterDuplicateNavItems(
 }
 
 function toNavItem(menu: CurrentUserMenu): NavItem | null {
-  if (menu.visible !== 1) return null;
+  if (menu.visible !== 1 || menu.permissionCode === "content:config:publish") return null;
 
   const sortedChildren = [...(menu.children ?? [])].sort(
     (a, b) => a.sortOrder - b.sortOrder,
@@ -119,7 +119,7 @@ export function mergeNavItems(
   const existingPaths = collectNavPaths(baseItems);
   const dedupedUserItems = filterDuplicateNavItems(userItems, existingPaths);
 
-  return [...baseItems, ...dedupedUserItems];
+  return [...dedupedUserItems.filter((item) => item.path.startsWith("/content")), ...baseItems, ...dedupedUserItems.filter((item) => !item.path.startsWith("/content"))];
 }
 
 export function createUserMenuTitleMap(

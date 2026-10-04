@@ -3,7 +3,7 @@ import { useAuthenticatedFileUrl } from "@/hooks/use-authenticated-file-url";
 import { downloadFile } from "@/api/file";
 import { getErrorMessage } from "@/lib/api-error";
 import { useState } from "react";
-function mediaID(path?: string) { const match = path?.match(/^\/media\/(?:images\/(\d+)\.(?:png|jpg|gif)|attachments\/(\d+)\/download)$/); return match ? Number(match[1] || match[2]) : null; }
+function mediaID(path?: string) { const match = path?.match(/^\/media\/(?:images\/(\d+)\.(?:png|jpg|gif|webp)|attachments\/(\d+)\/download)$/); return match ? Number(match[1] || match[2]) : null; }
 export function MarkdownMediaImage({ src, alt, ...props }: ComponentProps<"img">) {
   const id = mediaID(typeof src === "string" ? src : undefined);
   const resource = useAuthenticatedFileUrl(id ? `/api/system/file/${id}/view` : typeof src === "string" ? src : undefined);

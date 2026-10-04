@@ -28,6 +28,7 @@ export type ArticleDetail = {
 };
 
 export type ArticleListRecord = {
+ taxonomy: TaxonomySnapshot[];
   published: boolean; unpublishedChanges: boolean;
   id: number;
   slug: string;

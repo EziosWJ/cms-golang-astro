@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Boxes, ChevronDown } from "lucide-react";
+import { getEditorContext } from "@/api/site-config";
+import { hasPermission } from "@/lib/permission";
 import { toast } from "@/components/common/toast-store";
 import {
   convertUserMenusToNavItems,
@@ -51,6 +53,7 @@ function collectActiveGroupPaths(pathname: string, items: NavItem[]) {
 
 export function AppSidebar({ collapsed }: AppSidebarProps) {
   const location = useLocation();
+ const [siteName,setSiteName] = useState("");
   const [expandedPaths, setExpandedPaths] = useState<string[]>([]);
   const hasRequestedMenusRef = useRef(false);
   const menus = useAuthStore((state) => state.menus);
@@ -60,6 +63,7 @@ export function AppSidebar({ collapsed }: AppSidebarProps) {
     (state) => state.fetchCurrentUserMenus,
   );
 
+  useEffect(() => { let active=true; if(hasPermission("content:article:edit") || hasPermission("content:config:edit")) void getEditorContext().then((v) => { if(active)setSiteName(v.siteName); }).catch(() => undefined); return () => { active=false; }; }, [user,menus,location.pathname]);
   const sidebarNavItems = useMemo(
     () => {
       const base = user?.roles?.some((role) => role.roleCode === "ADMIN")
@@ -198,9 +202,9 @@ export function AppSidebar({ collapsed }: AppSidebarProps) {
         {!collapsed && (
           <div className="min-w-0">
             <div className="truncate text-base font-semibold text-text-primary">
-              智慧综合管理平台
+              {siteName || "CMS 内容管理"}
             </div>
-            <div className="truncate text-xs text-text-tertiary">管理控制台</div>
+            <div className="truncate text-xs text-text-tertiary">{siteName ? "CMS 内容管理" : "请设置站点名称"}</div>
           </div>
         )}
       </div>

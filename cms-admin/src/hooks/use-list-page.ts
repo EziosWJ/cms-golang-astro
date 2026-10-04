@@ -6,6 +6,7 @@ type UseListPageOptions<TFilters, TRecord, TQuery extends Record<string, unknown
   defaultFilters: TFilters;
   toQuery: (filters: TFilters, page: number, pageSize: number) => TQuery;
   defaultPageSize?: number;
+  defaultPage?: number;
   onError?: (error: unknown) => void;
 };
 
@@ -29,14 +30,14 @@ type UseListPageReturn<TFilters, TRecord> = {
 export function useListPage<TFilters, TRecord, TQuery extends Record<string, unknown> = Record<string, unknown>>(
   options: UseListPageOptions<TFilters, TRecord, TQuery>,
 ): UseListPageReturn<TFilters, TRecord> {
-  const { fetch, defaultFilters, toQuery, defaultPageSize = 10, onError } = options;
+  const { fetch, defaultFilters, toQuery, defaultPageSize = 10, defaultPage = 1, onError } = options;
 
   const [data, setData] = useState<TRecord[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(defaultPage);
   const [pageSize, setPageSize] = useState(defaultPageSize);
   const [queryVersion, setQueryVersion] = useState(0);
 

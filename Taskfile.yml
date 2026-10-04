@@ -8,13 +8,13 @@ env:
 
 tasks:
   default:
-    desc: Show available tasks
+    desc: 显示可用任务
     cmds:
       - task --list
     silent: true
 
   db:migrate:
-    desc: Apply migrations using the current database configuration
+    desc: 使用当前数据库配置执行迁移
     dir: cms-api
     env:
       APP_FILE__STORAGE_ROOT: '{{.ROOT_DIR}}/.runtime/uploads'
@@ -22,7 +22,7 @@ tasks:
       - go run ./cmd/migrate up --kind all
 
   db:migrate:sqlite:
-    desc: Apply migrations to the SQLite database
+    desc: 对 SQLite 数据库执行迁移
     dir: cms-api
     env:
       APP_CONFIG_PROFILE: sqlite
@@ -32,7 +32,7 @@ tasks:
       - go run ./cmd/migrate up --kind all
 
   api:sqlite:
-    desc: Start the API with the SQLite profile
+    desc: 使用 SQLite 配置启动 API
     dir: cms-api
     env:
       APP_CONFIG_PROFILE: sqlite
@@ -42,7 +42,7 @@ tasks:
       - go run ./cmd/api
 
   api:
-    desc: Start the API using the current database configuration
+    desc: 使用当前数据库配置启动 API
     dir: cms-api
     env:
       APP_FILE__STORAGE_ROOT: '{{.ROOT_DIR}}/.runtime/uploads'
@@ -50,57 +50,57 @@ tasks:
       - go run ./cmd/api
 
   admin:
-    desc: Start the CMS Admin development server
+    desc: 启动 CMS Admin 开发服务器
     dir: cms-admin
     cmds:
       - npm run dev -- --host 0.0.0.0
 
   site:
-    desc: Start the Astro development server
+    desc: 启动 Astro 开发服务器
     dir: site
     cmds:
       - npm run dev -- --host 0.0.0.0
 
   dev:
-    desc: Start the SQLite API, CMS Admin, publication worker, published site and Astro dev server
+    desc: 启动 SQLite API、CMS Admin、发布执行器、正式站点和 Astro 开发服务器
     deps:
       - db:migrate:sqlite
     cmds:
       - task --parallel api:sqlite admin site:serve site
 
   dev:cms:
-    desc: Start the SQLite API and CMS Admin
+    desc: 启动 SQLite API 和 CMS Admin
     deps:
       - db:migrate:sqlite
     cmds:
       - task --parallel api:sqlite admin
 
   dev:site:
-    desc: Start only the Astro site
+    desc: 仅启动 Astro 站点
     cmds:
       - task site
 
   backend:check:
-    desc: Run Go tests and static analysis
+    desc: 运行 Go 测试和静态分析
     dir: cms-api
     cmds:
       - go test ./...
       - go vet ./...
 
   backend:test:
-    desc: Run Go unit tests
+    desc: 运行 Go 测试
     dir: cms-api
     cmds:
       - go test ./...
 
   backend:vet:
-    desc: Run Go static analysis without executing tests
+    desc: 仅运行 Go 静态分析
     dir: cms-api
     cmds:
       - go vet ./...
 
   db:backup:
-    desc: Create an online SQLite backup; pass CLI flags through CLI_ARGS
+    desc: 创建 SQLite 在线备份；通过 CLI_ARGS 传递命令行参数
     dir: cms-api
     env:
       APP_CONFIG_PROFILE: sqlite
@@ -110,30 +110,30 @@ tasks:
       - go run ./cmd/backup {{.CLI_ARGS}}
 
   admin:lint:
-    desc: Lint CMS Admin
+    desc: 检查 CMS Admin 代码风格
     dir: cms-admin
     cmds:
       - npm run lint
 
   admin:date:check:
-    desc: Check configured content dates and daylight saving transitions
+    desc: 检查内容日期及夏令时边界
     cmds:
       - node scripts/check-content-date.mjs
 
   admin:build:
-    desc: Build CMS Admin
+    desc: 构建 CMS Admin
     dir: cms-admin
     cmds:
       - npm run build
 
   site:build:
-    desc: Build the Astro site
+    desc: 构建 Astro 站点
     dir: site
     cmds:
       - npm run build
 
   check:
-    desc: Run Go, CMS Admin and Astro checks
+    desc: 检查 Go、CMS Admin 和 Astro 站点
     deps:
       - backend:check
       - admin:lint
@@ -142,7 +142,7 @@ tasks:
       - site:build
 
   build:cms:
-    desc: Build the API with embedded CMS Admin plus migration and backup tools
+    desc: 构建内嵌 CMS Admin 的 API 及迁移、备份等工具
     deps:
       - admin:build
     dir: cms-api
@@ -160,7 +160,7 @@ tasks:
       - go build -trimpath -o ../bin/cms-import{{.GOEXE}} ./cmd/import
 
   build:check:
-    desc: Build release binaries and verify embedded frontend assets
+    desc: 构建发布二进制并验证内嵌前端资源
     deps:
       - build:cms
     dir: cms-api
@@ -169,30 +169,30 @@ tasks:
       - go vet -tags=embedweb ./...
 
   build:site:
-    desc: Build the Astro site independently
+    desc: 独立构建 Astro 站点
     cmds:
       - task site:build
 
   build:
-    desc: Build CMS binaries and the Astro site
+    desc: 构建 CMS 二进制和 Astro 站点
     deps:
       - build:cms
       - build:site
 
   db:integration:sqlite:
-    desc: Run the SQLite database integration contract
+    desc: 运行 SQLite 数据库集成验证
     dir: cms-api
     cmds:
       - go test -tags=integration ./integration -run SQLite -count=1
 
   db:integration:postgres:
-    desc: Run the PostgreSQL database integration contract
+    desc: 运行 PostgreSQL 数据库集成验证
     dir: cms-api
     cmds:
       - go test -tags=integration ./integration -run 'Postgres|Auth|RBAC|SysConfig|Department|Dictionary|Login|File|Notification|UserPage' -count=1
 
   worker:sqlite:
-    desc: Run the SQLite publication worker (explicitly migrate first)
+    desc: 启动 SQLite 发布执行器（请先显式执行迁移）
     dir: cms-api
     env:
       APP_CONFIG_PROFILE: sqlite
@@ -204,7 +204,7 @@ tasks:
       - go run ./cmd/worker
 
   worker:
-    desc: Run the publication worker using the configured database
+    desc: 使用当前数据库配置启动发布执行器
     dir: cms-api
     env:
       APP_FILE__STORAGE_ROOT: '{{.ROOT_DIR}}/.runtime/uploads'
@@ -214,13 +214,13 @@ tasks:
       - go run ./cmd/worker
 
   site:serve:
-    desc: Serve published artifacts without CMS API or database access
+    desc: 独立提供已发布站点文件，不访问 CMS API 或数据库
     dir: cms-api
     cmds:
       - go run ./cmd/staticweb --root '{{.ROOT_DIR}}/.runtime/publication' --address ':8081'
 
   publication:cleanup:
-    desc: Report obsolete artifacts (stop worker first; pass -- --apply to delete)
+    desc: 列出过期产物（先停止执行器；使用 -- --apply 才会删除）
     dir: cms-api
     env:
       APP_CONFIG_PROFILE: sqlite
@@ -231,7 +231,7 @@ tasks:
       - go run ./cmd/maintain {{.CLI_ARGS}}
 
   content:import:
-    desc: Preflight legacy content; requires -- --source PATH --source-id ID --actor-id ID
+    desc: 预检旧内容；必须传入 -- --source PATH --source-id ID --actor-id ID
     dir: cms-api
     env:
       APP_CONFIG_PROFILE: sqlite
@@ -243,9 +243,15 @@ tasks:
       - go run ./cmd/import {{.CLI_ARGS}}
 
   content:legacy:check:
-    desc: Validate the provided read-only legacy source in an isolated database
+    desc: 在隔离数据库中验证只读旧内容来源
     dir: cms-api
     env:
       CMS_LEGACY_EVIDENCE_ROOT: '{{.ROOT_DIR}}/.runtime/phase-1/legacy-real'
     cmds:
       - go test -tags=integration ./integration -run TestSQLiteLegacyRealSource -count=1 -v
+
+  admin:workflow:check:
+    desc: 在预先准备的隔离环境中验证作者流程（需要 CMS_WORKFLOW_URL 与已安装浏览器路径）
+    cmds:
+      - node scripts/check-author-workflow.mjs
+      - node scripts/check-author-boundaries.mjs

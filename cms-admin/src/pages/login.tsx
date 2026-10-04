@@ -18,7 +18,7 @@ function MobileBrand() {
         <Boxes className="h-5 w-5" aria-hidden />
       </div>
       <div>
-        <p className="text-base font-semibold tracking-tight text-text-primary">智慧综合管理平台</p>
+        <p className="text-base font-semibold tracking-tight text-text-primary">CMS 内容管理</p>
         <p className="mt-0.5 text-xs text-text-tertiary">
           Intelligent Management Platform
         </p>
@@ -43,10 +43,10 @@ export function LoginPage() {
     (location.state as { from?: { pathname?: string } } | null)?.from
       ?.pathname;
   const queryRedirect = new URLSearchParams(location.search).get("redirect");
-  let from = stateFrom ?? queryRedirect ?? "/dashboard";
+  let from = stateFrom ?? queryRedirect ?? "/content/articles";
 
   if (from.includes("://") || from.startsWith("//")) {
-    from = "/dashboard";
+    from = "/content/articles";
   }
 
   useEffect(() => {
@@ -109,7 +109,7 @@ export function LoginPage() {
     <main className="flex min-h-screen w-screen min-w-0 flex-col overflow-hidden bg-[#f5f8fc] min-[992px]:grid min-[992px]:grid-cols-[55%_45%]">
       <section
         className="relative hidden min-h-screen overflow-hidden bg-[#edf5ff] min-[992px]:flex min-[992px]:items-center min-[992px]:px-16 xl:px-24"
-        aria-label="平台介绍"
+        aria-label="CMS 介绍"
         style={{
           background:
             "radial-gradient(circle at 20% 25%, rgba(37,99,235,.15), transparent 35%), linear-gradient(135deg, #f0f6ff 0%, #e8f1ff 100%)",
@@ -137,7 +137,7 @@ export function LoginPage() {
             </div>
             <div>
               <p className="text-xl font-semibold tracking-tight text-text-primary">
-                智慧综合管理平台
+                CMS 内容管理
               </p>
               <p className="mt-1 text-xs tracking-wide text-text-tertiary">
                 Intelligent Management Platform
@@ -146,7 +146,7 @@ export function LoginPage() {
           </div>
 
           <p className="mb-4 text-sm font-medium tracking-[0.12em] text-primary">
-            企业级智慧管理解决方案
+            写作、预览与发布你的博客
           </p>
           <h1 className="text-4xl font-semibold leading-[1.2] tracking-[-0.03em] text-text-primary xl:text-5xl">
             安全 · 稳定 · 高效
@@ -281,7 +281,7 @@ export function LoginPage() {
             </form>
           </div>
 
-          <p className="mt-6 text-center text-xs text-slate-400">© 2026 智慧综合管理平台</p>
+          <p className="mt-6 text-center text-xs text-slate-400">© 2026 CMS 内容管理</p>
         </div>
       </section>
     </main>

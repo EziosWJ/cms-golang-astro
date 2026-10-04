@@ -49,7 +49,7 @@ export const router = createBrowserRouter([
       { path: "content/articles/:id", element: <Suspense fallback={<p role="status">加载编辑器…</p>}><ArticleEditorPage /></Suspense> },
       {
         index: true,
-        element: <Navigate to="/dashboard" replace />,
+        element: <Navigate to="/content/articles" replace />,
       },
       {
         path: "dashboard",
