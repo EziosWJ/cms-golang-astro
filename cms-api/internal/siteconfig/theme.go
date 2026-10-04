@@ -6,8 +6,8 @@ import (
 )
 
 const (
-	DefaultThemeID  = "comic"
-	CMSThemeAPIV1   = "1"
+	DefaultThemeID = "comic"
+	CMSThemeAPIV1  = "1"
 )
 
 var ErrThemeInvalid = errors.New("主题不存在或不可用")
@@ -28,22 +28,22 @@ type ThemeDefinition struct {
 
 var builtinThemes = []ThemeDefinition{
 	{
-		ID:          "comic",
-		Name:        "Comic",
-		Version:     "1.0.0",
-		Description: "Neo-Brutalist 漫画风主题，强调粗线条、纸张感和高对比信息卡片。",
-		Preview:     "builtin:comic",
+		ID:            "comic",
+		Name:          "Comic",
+		Version:       "1.0.0",
+		Description:   "Neo-Brutalist 漫画风主题，强调粗线条、纸张感和高对比信息卡片。",
+		Preview:       "builtin:comic",
 		Compatibility: ThemeCompatibility{CMSThemeAPI: CMSThemeAPIV1},
-		Capabilities: []string{"home", "article", "archive", "category", "tag", "404"},
+		Capabilities:  []string{"home", "article", "archive", "category", "tag", "404"},
 	},
 	{
-		ID:          "vaporwave",
-		Name:        "Vaporwave",
-		Version:     "1.0.0",
-		Description: "深色霓虹 Vaporwave 主题，强调网格、渐变和发光边界。",
-		Preview:     "builtin:vaporwave",
+		ID:            "vaporwave",
+		Name:          "Vaporwave",
+		Version:       "1.0.0",
+		Description:   "深色霓虹 Vaporwave 主题，强调网格、渐变和发光边界。",
+		Preview:       "builtin:vaporwave",
 		Compatibility: ThemeCompatibility{CMSThemeAPI: CMSThemeAPIV1},
-		Capabilities: []string{"home", "article", "archive", "category", "tag", "404"},
+		Capabilities:  []string{"home", "article", "archive", "category", "tag", "404"},
 	},
 }
 
@@ -81,7 +81,11 @@ func NormalizeLegacyTheme(in Data) Data {
 }
 
 func ResolveTheme(in Data) (Data, error) {
-	theme, ok := LookupTheme(in.Theme)
+	id := strings.TrimSpace(in.Theme)
+	if id == "" {
+		id = DefaultThemeID
+	}
+	theme, ok := LookupTheme(id)
 	if !ok {
 		return in, ErrThemeInvalid
 	}

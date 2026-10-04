@@ -81,10 +81,14 @@ func Validate(in Data) map[string]string {
 	if _, err := time.LoadLocation(in.Timezone); err != nil {
 		fields["timezone"] = "时区无效"
 	}
-	theme, ok := LookupTheme(in.Theme)
+	themeID := strings.TrimSpace(in.Theme)
+	if themeID == "" {
+		themeID = DefaultThemeID
+	}
+	theme, ok := LookupTheme(themeID)
 	if !ok {
 		fields["theme"] = "请选择有效主题"
-	} else if in.ThemeVersion != theme.Version {
+	} else if in.ThemeVersion != "" && in.ThemeVersion != theme.Version {
 		fields["theme"] = "主题版本已变化，请重新保存站点配置"
 	}
 	return fields
