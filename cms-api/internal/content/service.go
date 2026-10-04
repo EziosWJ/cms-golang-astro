@@ -44,6 +44,9 @@ func (s *Service) Page(ctx context.Context, actorID int64, q Query) (Page, error
 	if q.Page < 1 || q.PageSize < 1 || q.PageSize > 100 || q.Page > math.MaxInt/q.PageSize || len(q.Title) > 1000 {
 		return Page{}, ErrInvalid
 	}
+	if q.Status != "" && q.Status != "draft" && q.Status != "published" && q.Status != "changed" {
+		return Page{}, ErrInvalid
+	}
 	if q.Lifecycle == "" {
 		q.Lifecycle = "active"
 	}
@@ -64,6 +67,9 @@ func (s *Service) Create(ctx context.Context, meta audit.Metadata, in DraftInput
 	}
 	if err := validDraft(in); err != nil {
 		return Detail{}, err
+	}
+	if len(in.RequestKey) > 100 || (in.CreateMode != "" && in.CreateMode != "manual" && in.CreateMode != "autosave") {
+		return Detail{}, ErrInvalid
 	}
 	return s.store.Create(ctx, in, meta)
 }

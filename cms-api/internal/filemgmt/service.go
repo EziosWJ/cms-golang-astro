@@ -2,6 +2,9 @@ package filemgmt
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
 	_ "golang.org/x/image/webp"
 	"image"
 	_ "image/gif"
@@ -57,6 +60,21 @@ func (s *Service) uploadReader(ctx context.Context, m AuditMetadata, input Uploa
 		return File{}, err
 	}
 
+	fingerprint := ""
+	if input.RequestKey != "" {
+		hash := sha256.New()
+		if _, err := io.Copy(hash, input.Reader); err != nil {
+			return File{}, err
+		}
+		if _, err := input.Reader.Seek(0, io.SeekStart); err != nil {
+			return File{}, err
+		}
+		encoded, err := json.Marshal([]string{fmt.Sprintf("%x", hash.Sum(nil)), input.Filename, mimeType, businessModule, remark})
+		if err != nil {
+			return File{}, err
+		}
+		fingerprint = string(encoded)
+	}
 	stored, err := s.storage.Save(ctx, input.Filename, input.Reader)
 	if err != nil {
 		return File{}, err
@@ -65,11 +83,14 @@ func (s *Service) uploadReader(ctx context.Context, m AuditMetadata, input Uploa
 		s.compensate(ctx, stored.Path)
 		return File{}, ErrInvalid
 	}
-	f := File{OriginalName: input.Filename, StorageName: stored.Name, Extension: stored.Extension, MimeType: mimeType, FileSize: stored.Size, FileMD5: stored.MD5, StoragePath: stored.Path, BusinessModule: businessModule, Status: StatusEnabled, Remark: stringPtr(remark)}
+	f := File{UploadRequestKey: input.RequestKey, UploadFingerprint: fingerprint, OriginalName: input.Filename, StorageName: stored.Name, Extension: stored.Extension, MimeType: mimeType, FileSize: stored.Size, FileMD5: stored.MD5, StoragePath: stored.Path, BusinessModule: businessModule, Status: StatusEnabled, Remark: stringPtr(remark)}
 	f, err = s.store.Create(ctx, f, AuditEvent{Action: "file.upload", Resource: "file", ResourceID: 0, Summary: "上传文件", Metadata: m})
 	if err != nil {
 		s.compensate(ctx, stored.Path)
 		return File{}, err
+	}
+	if f.StoragePath != stored.Path {
+		s.compensate(ctx, stored.Path)
 	}
 	return f, nil
 }

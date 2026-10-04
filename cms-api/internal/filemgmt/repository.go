@@ -56,8 +56,29 @@ func (r *Repository) Create(ctx context.Context, f File, e AuditEvent) (File, er
 		return f, ErrInvalid
 	}
 	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if f.UploadRequestKey != "" {
+			if err := tx.Table("cms_publish_state").Where("id=1").Update("version", gorm.Expr("version+1")).Error; err != nil {
+				return err
+			}
+			var previous UploadRequest
+			err := tx.Where("actor_id=? AND request_key=?", e.Metadata.ActorID, f.UploadRequestKey).Take(&previous).Error
+			if err == nil {
+				if previous.Fingerprint != f.UploadFingerprint {
+					return ErrInvalid
+				}
+				return tx.Where("id=? AND deleted=0", previous.FileID).Take(&f).Error
+			}
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+		}
 		if err := tx.Create(&f).Error; err != nil {
 			return err
+		}
+		if f.UploadRequestKey != "" {
+			if err := tx.Create(&UploadRequest{ActorID: e.Metadata.ActorID, RequestKey: f.UploadRequestKey, Fingerprint: f.UploadFingerprint, FileID: f.ID}).Error; err != nil {
+				return err
+			}
 		}
 		e.ResourceID = f.ID
 		f.AccessURL = "/api/system/file/" + strconv.FormatInt(f.ID, 10) + "/view"

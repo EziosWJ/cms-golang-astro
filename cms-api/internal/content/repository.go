@@ -2,8 +2,10 @@ package content
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/authz"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/media"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/taxonomy"
@@ -26,6 +28,31 @@ func (r *Repository) Page(ctx context.Context, q Query) (Page, error) {
 	if q.Title != "" {
 		d = d.Where("d.title LIKE ?", "%"+q.Title+"%")
 	}
+	if q.Status == "draft" {
+		d = d.Where("NOT EXISTS (SELECT 1 FROM cms_published_article p WHERE p.article_id=a.id)")
+	}
+	if q.Status == "published" || q.Status == "changed" {
+		d = d.Where("EXISTS (SELECT 1 FROM cms_published_article p WHERE p.article_id=a.id)")
+	}
+	if q.Status == "changed" {
+		// Compare content rather than version: manual snapshots and date normalization
+		// must not create a false unpublished-change status.
+		var ids []int64
+		var candidates []int64
+		if err := d.Pluck("a.id", &candidates).Error; err != nil {
+			return p, err
+		}
+		for _, id := range candidates {
+			v, err := readDetail(r.db.WithContext(ctx), id)
+			if err != nil {
+				return p, err
+			}
+			if v.UnpublishedChanges {
+				ids = append(ids, id)
+			}
+		}
+		d = d.Where("a.id IN ?", ids)
+	}
 	if err := d.Count(&p.Total).Error; err != nil {
 		return p, err
 	}
@@ -36,6 +63,7 @@ func (r *Repository) Page(ctx context.Context, q Query) (Page, error) {
 			if e != nil {
 				return p, e
 			}
+			p.Records[i].Taxonomy = detail.Draft.Taxonomy
 			p.Records[i].Published = detail.Published
 			p.Records[i].UnpublishedChanges = detail.UnpublishedChanges
 		}
@@ -87,7 +115,29 @@ func readDetail(db *gorm.DB, id int64) (Detail, error) {
 }
 func (r *Repository) Create(ctx context.Context, in DraftInput, meta audit.Metadata) (Detail, error) {
 	var result Detail
-	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+	encoded, err := json.Marshal(in)
+	if err != nil {
+		return result, err
+	}
+	fingerprint := fmt.Sprintf("%x", sha256.Sum256(encoded))
+	err = r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Table("cms_publish_state").Where("id=1").Update("version", gorm.Expr("version+1")).Error; err != nil {
+			return err
+		}
+		if in.RequestKey != "" {
+			var previous CreateRequest
+			err := tx.Where("actor_id=? AND request_key=?", meta.ActorID, in.RequestKey).Take(&previous).Error
+			if err == nil {
+				if previous.Fingerprint != fingerprint {
+					return ErrConflict
+				}
+				result, err = readDetail(tx, previous.ArticleID)
+				return err
+			}
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return err
+			}
+		}
 		now := time.Now().UTC()
 		a := Article{Slug: nullableSlug(in.Slug), Lifecycle: "active", CreatedAt: now}
 		if err := tx.Create(&a).Error; err != nil {
@@ -112,15 +162,24 @@ func (r *Repository) Create(ctx context.Context, in DraftInput, meta audit.Metad
 		if err := taxonomy.SetReferences(tx, "draft", a.ID, d.Taxonomy); err != nil {
 			return err
 		}
-		rev := revisionFrom(d, in.Slug)
-		if err := tx.Create(&rev).Error; err != nil {
-			return err
+		var revisionID *int64
+		if in.CreateMode != "autosave" {
+			rev := revisionFrom(d, in.Slug)
+			if err := tx.Create(&rev).Error; err != nil {
+				return err
+			}
+			if err := taxonomy.SetReferences(tx, "revision", rev.ID, rev.Taxonomy); err != nil {
+				return err
+			}
+			if err := media.SetReferences(tx, "revision", rev.ID, files); err != nil {
+				return err
+			}
+			revisionID = &rev.ID
 		}
-		if err := taxonomy.SetReferences(tx, "revision", rev.ID, rev.Taxonomy); err != nil {
-			return err
-		}
-		if err := media.SetReferences(tx, "revision", rev.ID, files); err != nil {
-			return err
+		if in.RequestKey != "" {
+			if err := tx.Create(&CreateRequest{ActorID: meta.ActorID, RequestKey: in.RequestKey, Fingerprint: fingerprint, ArticleID: a.ID}).Error; err != nil {
+				return err
+			}
 		}
 		if err := audit.RecordOn(ctx, tx, audit.Event{Action: "CREATE", Resource: "content.article", ResourceID: a.ID, Metadata: meta}); err != nil {
 			return err
@@ -129,7 +188,7 @@ func (r *Repository) Create(ctx context.Context, in DraftInput, meta audit.Metad
 		if err != nil {
 			return err
 		}
-		result.RevisionID = &rev.ID
+		result.RevisionID = revisionID
 		return nil
 	})
 	return result, err
@@ -213,6 +272,9 @@ func (r *Repository) Save(ctx context.Context, id int64, in SaveInput, meta audi
 		var revisionID *int64
 		if in.Mode == "manual" {
 			rev := revisionFrom(d, in.Slug)
+			if in.RevisionSource == "publish" {
+				rev.Source = "publish"
+			}
 			if err := tx.Create(&rev).Error; err != nil {
 				return err
 			}
@@ -263,7 +325,7 @@ func draftFrom(in DraftInput, id, version, actor int64, now time.Time) Draft {
 	return Draft{ArticleID: id, Version: version, Title: in.Title, Markdown: in.Markdown, Summary: in.Summary, DisplayDate: date, SavedAt: now, SavedBy: actor, CoverMediaID: in.CoverMediaID}
 }
 func revisionFrom(d Draft, slug string) Revision {
-	return Revision{ArticleID: d.ArticleID, Version: d.Version, Slug: slug, Title: d.Title, Markdown: d.Markdown, Summary: d.Summary, DisplayDate: d.DisplayDate, CreatedAt: d.SavedAt, CreatedBy: d.SavedBy, Taxonomy: d.Taxonomy, CoverMediaID: d.CoverMediaID}
+	return Revision{Source: "manual", ArticleID: d.ArticleID, Version: d.Version, Slug: slug, Title: d.Title, Markdown: d.Markdown, Summary: d.Summary, DisplayDate: d.DisplayDate, CreatedAt: d.SavedAt, CreatedBy: d.SavedBy, Taxonomy: d.Taxonomy, CoverMediaID: d.CoverMediaID}
 }
 
 func (r *Repository) Revisions(ctx context.Context, id int64, q Query) (RevisionPage, error) {
@@ -275,7 +337,7 @@ func (r *Repository) Revisions(ctx context.Context, id int64, q Query) (Revision
 	if err := query.Count(&p.Total).Error; err != nil {
 		return p, err
 	}
-	err := query.Select("id, article_id, version, title, created_at, created_by").Order("id DESC").Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&p.Records).Error
+	err := query.Select("id, article_id, version, title, source, created_at, created_by").Order("id DESC").Offset((q.Page - 1) * q.PageSize).Limit(q.PageSize).Scan(&p.Records).Error
 	return p, err
 }
 func (r *Repository) Revision(ctx context.Context, id, revisionID int64) (Revision, error) {

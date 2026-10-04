@@ -156,6 +156,7 @@ func (s *Service) Submit(ctx context.Context, meta audit.Metadata, key string, i
 					return ErrInvalid
 				}
 				in.Save.Mode = "manual"
+				in.Save.RevisionSource = "publish"
 				if in.Kind == "preview" {
 					in.Save.Mode = "autosave"
 				}
@@ -404,5 +405,16 @@ func (s *Service) Page(ctx context.Context, actor int64, page, size int) (Page, 
 		return p, err
 	}
 	err := q.Order("id DESC").Offset((page - 1) * size).Limit(size).Find(&p.Records).Error
+	if err == nil {
+		for i := range p.Records {
+			if p.Records[i].RevisionID != nil {
+				var rev content.Revision
+				if e := s.DB.WithContext(ctx).Where("id=?", *p.Records[i].RevisionID).Take(&rev).Error; e != nil {
+					return p, e
+				}
+				p.Records[i].Title = rev.Title
+			}
+		}
+	}
 	return p, err
 }

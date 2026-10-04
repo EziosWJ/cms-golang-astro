@@ -30,7 +30,7 @@ func (h *Handler) Register(r gin.IRouter) {
 	g.POST("/:id/revisions/:revisionID/restore", h.restore)
 }
 func (h *Handler) page(c *gin.Context) {
-	q := Query{Page: intQuery(c, "page", 1), PageSize: intQuery(c, "pageSize", 10), Title: c.Query("title"), Lifecycle: c.Query("lifecycle")}
+	q := Query{Page: intQuery(c, "page", 1), PageSize: intQuery(c, "pageSize", 10), Title: c.Query("title"), Lifecycle: c.Query("lifecycle"), Status: c.Query("status")}
 	v, err := h.service.Page(c.Request.Context(), metadata(c).ActorID, q)
 	respond(c, v, err)
 }

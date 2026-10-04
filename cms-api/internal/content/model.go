@@ -46,6 +46,7 @@ type Draft struct {
 func (Draft) TableName() string { return "cms_working_draft" }
 
 type Revision struct {
+	Source       string              `json:"source"`
 	CoverMediaID *int64              `json:"coverMediaId"`
 	Taxonomy     []taxonomy.Snapshot `gorm:"serializer:json" json:"taxonomy"`
 	ID           int64               `gorm:"primaryKey" json:"id"`
@@ -75,6 +76,8 @@ type Detail struct {
 // DraftInput deliberately excludes publishing, taxonomy and media fields until
 // those capabilities exist; HTTP decoding rejects unknown fields.
 type DraftInput struct {
+	RequestKey   string     `json:"requestKey,omitempty"`
+	CreateMode   string     `json:"createMode,omitempty"`
 	CoverMediaID *int64     `json:"coverMediaId"`
 	CategoryIDs  []int64    `json:"categoryIds"`
 	TagIDs       []int64    `json:"tagIds"`
@@ -85,6 +88,7 @@ type DraftInput struct {
 	DisplayDate  *time.Time `json:"displayDate"`
 }
 type SaveInput struct {
+	RevisionSource   string              `json:"-"`
 	RestoredTaxonomy []taxonomy.Snapshot `json:"-"`
 	DraftInput
 	ExpectedVersion *int64 `json:"expectedVersion"`
@@ -94,17 +98,19 @@ type Query struct {
 	Page, PageSize int
 	Title          string
 	Lifecycle      string
+	Status         string
 }
 type ListItem struct {
-	Published          bool       `json:"published"`
-	UnpublishedChanges bool       `json:"unpublishedChanges"`
-	ID                 int64      `json:"id"`
-	Slug               string     `json:"slug"`
-	Lifecycle          string     `json:"lifecycle"`
-	Title              string     `json:"title"`
-	Version            int64      `json:"version"`
-	SavedAt            time.Time  `json:"savedAt"`
-	DisplayDate        *time.Time `json:"displayDate"`
+	Taxonomy           []taxonomy.Snapshot `gorm:"-" json:"taxonomy"`
+	Published          bool                `json:"published"`
+	UnpublishedChanges bool                `json:"unpublishedChanges"`
+	ID                 int64               `json:"id"`
+	Slug               string              `json:"slug"`
+	Lifecycle          string              `json:"lifecycle"`
+	Title              string              `json:"title"`
+	Version            int64               `json:"version"`
+	SavedAt            time.Time           `json:"savedAt"`
+	DisplayDate        *time.Time          `json:"displayDate"`
 }
 type Page struct {
 	Records  []ListItem `json:"records"`
@@ -114,6 +120,7 @@ type Page struct {
 }
 
 type RevisionSummary struct {
+	Source    string    `json:"source"`
 	ID        int64     `json:"id"`
 	ArticleID int64     `json:"articleId"`
 	Version   int64     `json:"version"`
@@ -127,3 +134,12 @@ type RevisionPage struct {
 	Page     int               `json:"page"`
 	PageSize int               `json:"pageSize"`
 }
+
+type CreateRequest struct {
+	ActorID     int64  `gorm:"primaryKey"`
+	RequestKey  string `gorm:"primaryKey"`
+	Fingerprint string
+	ArticleID   int64
+}
+
+func (CreateRequest) TableName() string { return "cms_article_create_request" }

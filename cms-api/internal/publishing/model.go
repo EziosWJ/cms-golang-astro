@@ -22,6 +22,7 @@ type State struct {
 func (State) TableName() string { return "cms_publish_state" }
 
 type Task struct {
+	Title            string    `gorm:"-" json:"title"`
 	TargetSnapshot   string    `json:"-"`
 	ID               int64     `gorm:"primaryKey" json:"id"`
 	Kind             string    `json:"kind"`

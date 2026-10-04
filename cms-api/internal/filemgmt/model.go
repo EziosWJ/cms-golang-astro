@@ -38,21 +38,23 @@ var (
 )
 
 type File struct {
-	ID             int64     `gorm:"column:id;primaryKey" json:"id"`
-	OriginalName   string    `gorm:"column:original_name" json:"originalName"`
-	StorageName    string    `gorm:"column:storage_name" json:"storageName"`
-	Extension      string    `gorm:"column:extension" json:"extension"`
-	MimeType       string    `gorm:"column:mime_type" json:"mimeType"`
-	FileSize       int64     `gorm:"column:file_size" json:"fileSize"`
-	FileMD5        string    `gorm:"column:file_md5" json:"fileMd5"`
-	StoragePath    string    `gorm:"column:storage_path" json:"storagePath"`
-	AccessURL      string    `gorm:"column:access_url" json:"accessUrl"`
-	BusinessModule string    `gorm:"column:business_module" json:"businessModule"`
-	Status         int       `gorm:"column:status" json:"status"`
-	Remark         *string   `gorm:"column:remark" json:"remark"`
-	CreateTime     time.Time `gorm:"column:create_time;autoCreateTime" json:"createTime"`
-	UpdateTime     time.Time `gorm:"column:update_time;autoUpdateTime" json:"updateTime"`
-	Deleted        int       `gorm:"column:deleted" json:"-"`
+	UploadRequestKey  string    `gorm:"-" json:"-"`
+	UploadFingerprint string    `gorm:"-" json:"-"`
+	ID                int64     `gorm:"column:id;primaryKey" json:"id"`
+	OriginalName      string    `gorm:"column:original_name" json:"originalName"`
+	StorageName       string    `gorm:"column:storage_name" json:"storageName"`
+	Extension         string    `gorm:"column:extension" json:"extension"`
+	MimeType          string    `gorm:"column:mime_type" json:"mimeType"`
+	FileSize          int64     `gorm:"column:file_size" json:"fileSize"`
+	FileMD5           string    `gorm:"column:file_md5" json:"fileMd5"`
+	StoragePath       string    `gorm:"column:storage_path" json:"storagePath"`
+	AccessURL         string    `gorm:"column:access_url" json:"accessUrl"`
+	BusinessModule    string    `gorm:"column:business_module" json:"businessModule"`
+	Status            int       `gorm:"column:status" json:"status"`
+	Remark            *string   `gorm:"column:remark" json:"remark"`
+	CreateTime        time.Time `gorm:"column:create_time;autoCreateTime" json:"createTime"`
+	UpdateTime        time.Time `gorm:"column:update_time;autoUpdateTime" json:"updateTime"`
+	Deleted           int       `gorm:"column:deleted" json:"-"`
 }
 
 func (File) TableName() string { return "sys_file" }
@@ -94,6 +96,7 @@ func validMD5(value string) bool {
 // UploadInput is a bounded, seekable file stream prepared by the HTTP layer.
 // The Service consumes it without depending on Gin or multipart internals.
 type UploadInput struct {
+	RequestKey  string
 	Filename    string
 	ContentType string
 	Size        int64
@@ -135,3 +138,12 @@ type Storage interface {
 	Open(context.Context, string) (io.ReadSeekCloser, error)
 	Remove(context.Context, string) error
 }
+
+type UploadRequest struct {
+	ActorID     int64  `gorm:"primaryKey"`
+	RequestKey  string `gorm:"primaryKey"`
+	Fingerprint string
+	FileID      int64
+}
+
+func (UploadRequest) TableName() string { return "cms_media_upload_request" }

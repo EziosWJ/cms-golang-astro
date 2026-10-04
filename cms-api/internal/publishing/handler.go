@@ -49,6 +49,7 @@ func reply(c *gin.Context, data any, err error) {
 		return
 	}
 	status, message := 500, "发布操作失败"
+	var errorData any
 	switch {
 	case platform.IsTemporaryUnavailable(err):
 		platform.TemporaryUnavailable(c)
@@ -57,14 +58,17 @@ func reply(c *gin.Context, data any, err error) {
 		status, message = 403, err.Error()
 	case errors.Is(err, gorm.ErrRecordNotFound), errors.Is(err, content.ErrNotFound):
 		status, message = 404, "记录不存在"
-	case errors.Is(err, ErrConflict), errors.Is(err, content.ErrConflict), errors.Is(err, content.ErrReadOnly), errors.Is(err, content.ErrSlugTaken), errors.Is(err, taxonomy.ErrConflict):
+	case errors.Is(err, content.ErrConflict):
+		status, message = 409, err.Error()
+		errorData = map[string]string{"reason": "version_conflict"}
+	case errors.Is(err, ErrConflict), errors.Is(err, content.ErrReadOnly), errors.Is(err, content.ErrSlugTaken), errors.Is(err, taxonomy.ErrConflict):
 		status, message = 409, err.Error()
 	case errors.Is(err, ErrNoBaseline), errors.Is(err, ErrInvalid), errors.Is(err, content.ErrInvalid), errors.Is(err, content.ErrSlugInvalid), errors.Is(err, taxonomy.ErrInvalid), errors.Is(err, media.ErrInvalid):
 		status, message = 400, err.Error()
 	case errors.Is(err, ErrExecutorUnavailable), errors.Is(err, ErrBlocked):
 		status, message = 503, err.Error()
 	}
-	platform.WriteError(c, status, status, message, nil)
+	platform.WriteError(c, status, status, message, errorData)
 }
 func (h *Handler) submit(c *gin.Context) {
 	var in SubmitInput

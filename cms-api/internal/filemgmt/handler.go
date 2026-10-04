@@ -118,7 +118,15 @@ func (h *Handler) upload(c *gin.Context) {
 		writeFields(c, fields)
 		return
 	}
-	result, err := h.service.UploadContent(c.Request.Context(), auditMetadata(c), parsed.files[0].input, businessModule, remark)
+	input := parsed.files[0].input
+	if strings.HasPrefix(c.FullPath(), "/api/v1/media/") {
+		input.RequestKey = c.GetHeader("Idempotency-Key")
+		if len(input.RequestKey) > 100 {
+			writeError(c, ErrInvalid)
+			return
+		}
+	}
+	result, err := h.service.UploadContent(c.Request.Context(), auditMetadata(c), input, businessModule, remark)
 	writeResult(c, result, err)
 }
 

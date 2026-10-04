@@ -3,6 +3,7 @@ package siteconfig
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/audit"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/auth"
@@ -31,6 +32,7 @@ type Data struct {
 	AvatarMediaID *int64 `json:"avatarMediaId"`
 }
 type Working struct {
+	Published  *Revision `gorm:"-" json:"published"`
 	ID         int64     `gorm:"primaryKey" json:"-"`
 	Version    int64     `json:"version"`
 	Data       Data      `gorm:"serializer:json" json:"data"`
@@ -91,6 +93,19 @@ func Read(ctx context.Context, db *gorm.DB) (Working, error) {
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return work, err
 	}
+	var release struct{ Manifest string }
+	err = db.WithContext(ctx).Table("cms_release r").Select("r.manifest").Joins("JOIN cms_publish_state s ON s.current_release_id=r.id").Take(&release).Error
+	if err == nil {
+		var manifest struct {
+			Config Revision `json:"config"`
+		}
+		if err := json.Unmarshal([]byte(release.Manifest), &manifest); err != nil {
+			return work, err
+		}
+		work.Published = &manifest.Config
+	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return work, err
+	}
 	return work, nil
 }
 func Save(ctx context.Context, tx *gorm.DB, version int64, in Data, meta audit.Metadata) (Working, error) {
@@ -125,13 +140,20 @@ func Save(ctx context.Context, tx *gorm.DB, version int64, in Data, meta audit.M
 		}
 		return audit.RecordOn(ctx, db, audit.Event{Action: "UPDATE", Resource: "content.siteconfig", ResourceID: 1, Metadata: meta})
 	})
-	return work, err
+	if err != nil {
+		return work, err
+	}
+	return Read(ctx, tx)
 }
 
 type Handler struct{ db *gorm.DB }
 
 func NewHandler(db *gorm.DB) *Handler { return &Handler{db} }
 func (h *Handler) Register(r gin.IRouter) {
+	r.GET("/site-config/editor-context", authz.RequireAny(h.db, "content:article:edit", "content:config:edit"), func(c *gin.Context) {
+		work, err := Read(c.Request.Context(), h.db)
+		reply(c, map[string]any{"siteName": work.Data.SiteName, "timezone": work.Data.Timezone, "published": work.Published}, err)
+	})
 	r.GET("/site-config/editor-timezone", authz.RequireAny(h.db, "content:article:edit", "content:config:edit"), func(c *gin.Context) {
 		working, err := Read(c.Request.Context(), h.db)
 		reply(c, map[string]string{"timezone": working.Data.Timezone}, err)
