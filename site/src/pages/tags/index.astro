@@ -1,6 +1,5 @@
 ---
-import Blog from '../../layouts/Blog.astro';
-import { terms, taxonomyURL } from '../../lib/content';
-const entries = terms('tag');
+import { TagWallView } from '../../theme';
+import { themeSite, themeTerms } from '../../lib/theme-model';
 ---
-<Blog title="标签"><h1>标签</h1><ul class="taxonomy">{entries.map((term) => <li><a href={taxonomyURL(term)}>{term.name}</a></li>)}</ul>{!entries.length && <p>暂无已发布标签。</p>}</Blog>
+<TagWallView site={themeSite} title="标签" terms={themeTerms('tag')} />

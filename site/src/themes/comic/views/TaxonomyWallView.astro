@@ -1,0 +1,6 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import type { TaxonomyWallProps } from '../../types';
+const { site, title, terms } = Astro.props as TaxonomyWallProps;
+---
+<BaseLayout site={site} title={title}><div class="comic-page-heading"><span>INDEX</span><h1>{title}</h1></div>{terms.length ? <div class="comic-term-wall">{terms.map((term) => <a href={term.url}><strong>{term.name}</strong><span>{term.count} 篇</span></a>)}</div> : <div class="comic-empty">暂无内容。</div>}</BaseLayout>

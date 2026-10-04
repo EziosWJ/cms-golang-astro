@@ -1,0 +1,6 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import type { NotFoundProps } from '../../types';
+const { site } = Astro.props as NotFoundProps;
+---
+<BaseLayout site={site} title="404"><div class="vapor-404"><strong>404</strong><h1>LOST_SIGNAL</h1><p>Requested coordinate does not exist in this archive.</p><a href={site.homeUrl}>RETURN_HOME [→]</a></div></BaseLayout>

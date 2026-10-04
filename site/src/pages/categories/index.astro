@@ -1,6 +1,5 @@
 ---
-import Blog from '../../layouts/Blog.astro';
-import { terms, taxonomyURL } from '../../lib/content';
-const entries = terms('category');
+import { CategoryWallView } from '../../theme';
+import { themeSite, themeTerms } from '../../lib/theme-model';
 ---
-<Blog title="分类"><h1>分类</h1><ul class="taxonomy">{entries.map((term) => <li><a href={taxonomyURL(term)}>{term.name}</a></li>)}</ul>{!entries.length && <p>暂无已发布分类。</p>}</Blog>
+<CategoryWallView site={themeSite} title="分类" terms={themeTerms('category')} />

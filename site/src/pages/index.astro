@@ -1,5 +1,5 @@
 ---
-import Blog from '../layouts/Blog.astro';
-import { articles, articleURL, formatDate } from '../lib/content';
+import { HomeView } from '../theme';
+import { themeArticles, themeSite } from '../lib/theme-model';
 ---
-<Blog><h1>文章</h1>{articles.length ? <ul class="articles">{articles.map((article) => <li><h2><a href={articleURL(article)}>{article.revision.title}</a></h2><p class="meta">{formatDate(article.revision.displayDate)}</p>{article.revision.summary && <p>{article.revision.summary}</p>}</li>)}</ul> : <p>暂无已发布文章。</p>}</Blog>
+<HomeView site={themeSite} articles={themeArticles} />

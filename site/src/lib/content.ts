@@ -1,12 +1,13 @@
 import { readFile } from 'node:fs/promises';
 import { createMarkdownProcessor } from '@astrojs/markdown-remark';
+import { shikiConfig } from '../theme';
 
 export type Taxonomy = { id: number; kind: 'category' | 'tag'; name: string; url: string };
 export type Revision = { articleId: number; title: string; slug: string; markdown: string; summary: string; displayDate: string | null; coverMediaId: number | null; taxonomy: Taxonomy[] };
 export type Article = { revision: Revision; firstPublishedAt: string; updatedAt: string };
-export type Config = { siteName: string; description: string; publicUrl: string; language: string; timezone: string; authorName: string; authorBio: string; avatarMediaId: number | null };
+export type Config = { siteName: string; description: string; publicUrl: string; language: string; timezone: string; authorName: string; authorBio: string; avatarMediaId: number | null; theme: string; themeVersion: string };
 export type Snapshot = { config: { data: Config }; articles: Article[]; media: { file: { id: number; originalName: string; mimeType: string }; path: string }[] };
-const defaultSnapshot: Snapshot = { config: { data: { siteName: 'CMS 博客', description: '', publicUrl: 'http://localhost:8080', language: 'zh-CN', timezone: 'Asia/Shanghai', authorName: '作者', authorBio: '', avatarMediaId: null } }, articles: [], media: [] };
+const defaultSnapshot: Snapshot = { config: { data: { siteName: 'CMS 博客', description: '', publicUrl: 'http://localhost:8080', language: 'zh-CN', timezone: 'Asia/Shanghai', authorName: '作者', authorBio: '', avatarMediaId: null, theme: 'comic', themeVersion: '1.0.0' } }, articles: [], media: [] };
 const inputPath = process.env.CMS_INPUT_PATH;
 export const snapshot: Snapshot = inputPath ? JSON.parse(await readFile(inputPath, 'utf8')) : defaultSnapshot;
 export const config = snapshot.config.data;
@@ -19,5 +20,6 @@ export function terms(kind: Taxonomy['kind']) { const map = new Map<number, Taxo
 export function formatDate(value: string | null) { return value ? new Intl.DateTimeFormat(config.language, { timeZone: config.timezone, dateStyle: 'medium' }).format(new Date(value)) : ''; }
 // Escape HTML nodes before rehype processing; raw HTML and editor directives stay text.
 function escapeRawHtml() { return (tree: { type: string; children?: typeof tree[] }) => { function walk(node: typeof tree) { if (node.type === 'html') node.type = 'text'; node.children?.forEach(walk); } walk(tree); }; }
-const processor = createMarkdownProcessor({ gfm: true, smartypants: false, syntaxHighlight: 'shiki', shikiConfig: { transformers: [{ name: 'cms-language-label', pre(node) { node.properties['data-language'] = this.options.lang ?? 'text'; } }] }, remarkPlugins: [escapeRawHtml] });
+const markdownShikiConfig = { ...(shikiConfig as Record<string, unknown>), transformers: [{ name: 'cms-language-label', pre(node: { properties: Record<string, unknown> }) { node.properties['data-language'] = (this as { options: { lang?: string } }).options.lang ?? 'text'; } }] };
+const processor = createMarkdownProcessor({ gfm: true, smartypants: false, syntaxHighlight: 'shiki', shikiConfig: markdownShikiConfig as never, remarkPlugins: [escapeRawHtml] });
 export async function renderMarkdown(markdown: string) { const result = await (await processor).render(markdown); return result.code.replace(/(href|src)="(\/[^\"]*)"/g, (_match, attr, path) => `${attr}="${withBase(path)}"`); }

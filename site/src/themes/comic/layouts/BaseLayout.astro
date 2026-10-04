@@ -1,0 +1,7 @@
+---
+import '../styles/theme.css';
+import type { BaseLayoutProps } from '../../types';
+const { site, title, description } = Astro.props as BaseLayoutProps;
+const pageTitle = title ? `${title} | ${site.name}` : site.name;
+---
+<!doctype html><html lang={site.language}><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width" /><meta name="description" content={description ?? site.description} /><title>{pageTitle}</title></head><body><div class="comic-shell"><header class="comic-header"><a class="comic-logo" href={site.homeUrl}>{site.name}</a><nav aria-label="主导航"><a href={site.archiveUrl}>归档</a><a href={site.categoriesUrl}>分类</a><a href={site.tagsUrl}>标签</a></nav></header><main class="comic-main"><slot /></main><footer class="comic-footer"><strong>{site.authorName}</strong>{site.authorBio && <span>{site.authorBio}</span>}</footer></div></body></html>
