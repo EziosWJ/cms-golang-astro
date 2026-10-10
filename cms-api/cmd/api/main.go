@@ -21,6 +21,7 @@ import (
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/dept"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/dictionary"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/filemgmt"
+	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/gitexport"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/logmgmt"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/media"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/notification"
@@ -114,7 +115,9 @@ func main() {
 	executor := publishing.NewExecutor(&publishing.Worker{DB: database.GORM, Root: cfg.Publication.RuntimeRoot, Builder: siteBuilder}, cfg.Publication.WorkerEnabled, siteBuilder.CheckEnvironment)
 	publicationService := publishing.NewService(database.GORM, cfg.Publication.RuntimeRoot, cfg.Environment == config.EnvironmentProd)
 	publicationService.Executor = executor
+	gitService := gitexport.NewService(database.GORM, cfg.Publication.RuntimeRoot)
 	application, err := app.New(*cfg, database, app.Dependencies{
+		GitExport:    gitexport.NewHandler(gitService),
 		Auth:         authService,
 		RBAC:         rbacService,
 		Department:   deptService,
@@ -145,6 +148,15 @@ func main() {
 	}
 
 	executor.Start()
+	gitContext, cancelGit := context.WithCancel(context.Background())
+	gitDone := make(chan struct{})
+	go func() {
+		defer close(gitDone)
+		if err := gitService.Run(gitContext); err != nil {
+			application.Logger.Error("Git 推送执行器已停止", "error", "请检查迁移与运行目录后重启")
+		}
+	}()
+
 	go func() {
 		application.Logger.Info("HTTP server started", "address", cfg.HTTP.Address)
 		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -157,6 +169,7 @@ func main() {
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
 	<-stop
 
+	cancelGit()
 	workerShutdown, cancelWorker := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancelWorker()
 	// Drain HTTP and worker concurrently; keep the DB open until both stop.
@@ -169,6 +182,11 @@ func main() {
 	}
 	if err := <-workerDone; err != nil {
 		application.Logger.Warn("worker shutdown interrupted", "error", err)
+	}
+	select {
+	case <-gitDone:
+	case <-workerShutdown.Done():
+		application.Logger.Warn("Git 推送执行器关闭超时")
 	}
 	application.Logger.Info("HTTP server stopped")
 }

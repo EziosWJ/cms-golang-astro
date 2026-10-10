@@ -7,6 +7,7 @@ import { ChangePasswordPage } from "@/pages/change-password";
 import { DashboardPage } from "@/pages/dashboard";
 import { LoginPage } from "@/pages/login";
 import { NotFoundPage } from "@/pages/not-found";
+import { GitConnectionPage } from "@/pages/settings/git";
 import { SettingsPage } from "@/pages/settings";
 import { SystemConfigsPage } from "@/pages/system/configs";
 import { SystemDeptsPage } from "@/pages/system/depts";
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
+      { path: "settings/git", element: <GitConnectionPage /> },
       { path: "content/publications", element: <PublicationsPage /> },
       { path: "content/site-config", element: <SiteConfigPage /> },
       { path: "content/media", element: <MediaPage /> },

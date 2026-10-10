@@ -1,0 +1,16 @@
+import { http } from "@/lib/http";
+export type GitConnection = { login: string; repository: string; branch: string; sourceRepository: string; sourceRef: string; hasCredential: boolean; credentialError: boolean; updatedAt: string };
+export type GitConnectionInput = { token: string; repository: string; branch: string; sourceRepository: string; sourceRef: string };
+export type GitRepository = { full_name: string; default_branch: string };
+export const getGitConnection = () => http.get<GitConnection>("/api/v1/git-connection");
+export const saveGitConnection = (input: GitConnectionInput) => http.put<GitConnection>("/api/v1/git-connection", input);
+export const disconnectGitConnection = () => http.delete("/api/v1/git-connection");
+export const detectGitConnection = (token: string) => http.post<{ login: string; repositories: GitRepository[] }>("/api/v1/git-connection/detect", { token });
+export const getGitRefs = (repository: string, kind: "branches" | "tags", token = "", source = false) => http.post<{ name: string }[]>("/api/v1/git-connection/refs", { repository, kind, token, source });
+export type GitPushAttempt = { id: number; status: string; error: string; plannedSha: string; createdAt: string; finishedAt: string | null };
+export type GitPushTask = { id: number; releaseId: number; releaseKey: string; repository: string; branch: string; sourceRepository: string; sourceSha: string; inputHash: string; status: string; error: string; commitSha: string; commitUrl: string; unchanged: boolean; createdAt: string; updatedAt: string; attempts?: GitPushAttempt[] };
+export const getGitPushes = (page = 1, pageSize = 10) => http.get<{ records: GitPushTask[]; total: number; page: number; pageSize: number }>("/api/v1/git-pushes", { query: { page, pageSize } });
+export const getGitPush = (id: number) => http.get<GitPushTask>(`/api/v1/git-pushes/${id}`);
+export const createGitPush = (key: string) => http.post<GitPushTask>("/api/v1/git-pushes", {}, { headers: { "Idempotency-Key": key } });
+export const retryGitPush = (id: number, key: string) => http.post<GitPushTask>(`/api/v1/git-pushes/${id}/retry`, {}, { headers: { "Idempotency-Key": key } });
+export const gitPushStatus: Record<string, string> = { queued: "排队中", running: "推送中", succeeded: "已推送", failed: "失败", interrupted: "中断，待核实", superseded: "已被较新推送取代" };

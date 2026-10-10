@@ -202,6 +202,30 @@ func contentPublicationContract(t *testing.T, db *database.Database, directory s
 		t.Fatalf("referenced media deletion %v", e)
 	}
 	run(aTask)
+	// Portable inputs use the successful snapshot, even after an autosaved draft.
+	var exportedRelease publishing.Release
+	if err := db.GORM.Where("attempt_id IN (SELECT id FROM cms_publish_attempt WHERE task_id=?)", aTask.ID).Take(&exportedRelease).Error; err != nil {
+		t.Fatal(err)
+	}
+	var exportedManifest builder.Manifest
+	if err := json.Unmarshal([]byte(exportedRelease.Manifest), &exportedManifest); err != nil {
+		t.Fatal(err)
+	}
+	exportDir := filepath.Join(directory, "portable-input")
+	if _, err := builder.ExportInput(ctx, exportedManifest, exportedRelease.ManifestHash, filepath.Join(root, "releases", exportedRelease.ReleaseKey), exportDir, builder.SourceVersion{}); err != nil {
+		t.Fatal(err)
+	}
+	exportedJSON, err := os.ReadFile(filepath.Join(exportDir, "manifest.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(string(exportedJSON), "A未发布修改") || strings.Contains(string(exportedJSON), "createdBy") {
+		t.Fatal("unpublished or private data exported")
+	}
+	var publicInput builder.PublicSnapshot
+	if err := json.Unmarshal(exportedJSON, &publicInput); err != nil || len(publicInput.Articles) != 1 {
+		t.Fatalf("exported snapshot: %s %v", exportedJSON, err)
+	}
 	page := public("/archives/%E4%B8%AD%E6%96%87-123/")
 	if page.Code != 200 || strings.Contains(page.Body.String(), "A未发布修改") || !strings.Contains(page.Body.String(), "<table>") || !strings.Contains(page.Body.String(), "data-language=\"go\"") || !strings.Contains(page.Body.String(), "id=\"标题\"") {
 		t.Fatalf("published A %d %s", page.Code, page.Body)

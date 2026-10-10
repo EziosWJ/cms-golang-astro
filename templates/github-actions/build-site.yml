@@ -1,0 +1,71 @@
+# Copy to .github/workflows/build-site.yml in the PUBLIC INPUT repository.
+# Replace main with the target branch configured in CMS.
+name: Build CMS site
+on:
+  push:
+    branches: [main]
+    paths: ['cms-input/**']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: cms-site-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the event input commit
+        uses: actions/checkout@v4
+        with:
+          path: input
+          persist-credentials: false
+      - name: Read fixed public source identity
+        id: source
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          metadata = json.loads(Path('input/cms-input/export.json').read_text())
+          assert metadata['schemaVersion'] == 1, 'Unsupported input schema'
+          source = metadata['source']
+          assert re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+', source['repository']), 'Invalid source repository'
+          assert re.fullmatch(r'[a-f0-9]{40}', source['sha']), 'Source must be an immutable SHA'
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('repository=' + source['repository'] + '\n')
+              output.write('sha=' + source['sha'] + '\n')
+          PY
+      - name: Check out the fixed Astro source
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ steps.source.outputs.repository }}
+          ref: ${{ steps.source.outputs.sha }}
+          path: source
+          persist-credentials: false
+      - name: Use the source Node version
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: source/.nvmrc
+          cache: npm
+          cache-dependency-path: source/site/package-lock.json
+      - name: Validate portable input and prepare isolated public resources
+        run: node source/scripts/prepare-git-site.mjs input/cms-input source/site
+      - name: Install locked dependencies
+        working-directory: source/site
+        run: npm ci
+      - name: Build once
+        working-directory: source/site
+        env:
+          CMS_INPUT_PATH: ${{ github.workspace }}/input/cms-input/manifest.json
+          CMS_BASE_PATH: /
+        run: npm run build
+      - name: Verify static artifact boundary
+        run: node source/scripts/prepare-git-site.mjs --check-output source/site/dist
+      - name: Upload public static site
+        uses: actions/upload-artifact@v4
+        with:
+          name: cms-site-${{ github.sha }}
+          path: source/site/dist/
+          if-no-files-found: error
+          include-hidden-files: false

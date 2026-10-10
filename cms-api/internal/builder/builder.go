@@ -3,7 +3,6 @@ package builder
 
 import (
 	"context"
-	"crypto/md5"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -83,77 +82,13 @@ func (b Builder) Build(ctx context.Context, manifest Manifest, hash string) (str
 		return "", err
 	}
 	workspace := filepath.Join(directory, "site")
-	if err := copyTree(ctx, b.SiteRoot, workspace, true); err != nil {
-		return "", fmt.Errorf("copy site template: %w", err)
+	if err := prepareWorkspace(ctx, b.SiteRoot, workspace); err != nil {
+		return "", fmt.Errorf("prepare site workspace: %w", err)
 	}
 	deps := filepath.Join(b.SiteRoot, "node_modules")
-	if _, err := os.Stat(deps); err != nil {
-		return "", errors.New("site dependencies missing; run npm --prefix site ci")
-	}
-	if err := os.Symlink(deps, filepath.Join(workspace, "node_modules")); err != nil {
-		if err := copyTree(ctx, deps, filepath.Join(workspace, "node_modules"), false); err != nil {
-			return "", fmt.Errorf("copy dependencies: %w", err)
-		}
-	}
-	input, _, err := Encode(manifest)
+	inputPath, err := PrepareInput(ctx, manifest, directory, filepath.Join(workspace, "public"), b.UploadsRoot)
 	if err != nil {
 		return "", err
-	}
-	inputPath := filepath.Join(directory, "manifest.json")
-	if err := os.WriteFile(inputPath, []byte(input), 0600); err != nil {
-		return "", err
-	}
-	markdownRoot := filepath.Join(directory, "markdown")
-	if err := os.MkdirAll(markdownRoot, 0700); err != nil {
-		return "", err
-	}
-	for _, article := range manifest.Articles {
-		if err := os.WriteFile(filepath.Join(markdownRoot, fmt.Sprintf("%d.md", article.Revision.ArticleID)), []byte(article.Revision.Markdown), 0600); err != nil {
-			return "", err
-		}
-	}
-	for _, resource := range manifest.Media {
-		if err := ctx.Err(); err != nil {
-			return "", err
-		}
-		target, err := safeJoin(filepath.Join(workspace, "public"), strings.TrimPrefix(resource.Path, "/"))
-		if err != nil {
-			return "", err
-		}
-		source, err := safeJoin(b.UploadsRoot, resource.File.StoragePath)
-		if err != nil {
-			return "", err
-		}
-		if err := os.MkdirAll(filepath.Dir(target), 0750); err != nil {
-			return "", err
-		}
-		file, err := os.Open(source)
-		if err != nil {
-			return "", err
-		}
-		info, err := file.Stat()
-		if err != nil || !info.Mode().IsRegular() {
-			file.Close()
-			return "", errors.New("media source is not a regular file")
-		}
-		writer, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0640)
-		if err != nil {
-			file.Close()
-			return "", err
-		}
-		checksum := md5.New()
-		size, copyErr := io.Copy(io.MultiWriter(writer, checksum), io.LimitReader(file, 50*1024*1024+1))
-		closeErr := writer.Close()
-		file.Close()
-		if copyErr != nil {
-			return "", copyErr
-		}
-		if closeErr != nil {
-			return "", closeErr
-		}
-		if size != resource.File.FileSize || hex.EncodeToString(checksum.Sum(nil)) != resource.File.FileMD5 {
-			return "", errors.New("media source identity changed")
-		}
 	}
 	log, err := os.OpenFile(filepath.Join(directory, "build.log"), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0600)
 	if err != nil {
@@ -233,7 +168,12 @@ func filteredEnv() []string {
 	return out
 }
 func Validate(root string, expected Marker) error {
-	raw, err := os.ReadFile(filepath.Join(root, ".release.json"))
+	reader, err := os.OpenRoot(root)
+	if err != nil {
+		return err
+	}
+	defer reader.Close()
+	raw, err := reader.ReadFile(".release.json")
 	if err != nil {
 		return err
 	}
@@ -245,11 +185,11 @@ func Validate(root string, expected Marker) error {
 		return errors.New("release identity mismatch")
 	}
 	for relative, hash := range marker.Files {
-		path, err := safeJoin(root, relative)
+		_, err := safeJoin(root, relative)
 		if err != nil {
 			return err
 		}
-		bytes, err := os.ReadFile(path)
+		bytes, err := reader.ReadFile(relative)
 		if err != nil {
 			return err
 		}
@@ -271,6 +211,28 @@ func safeJoin(root, relative string) (string, error) {
 	}
 	return path, nil
 }
+func prepareWorkspace(ctx context.Context, siteRoot, workspace string) error {
+	if err := os.RemoveAll(workspace); err != nil {
+		return fmt.Errorf("remove stale workspace: %w", err)
+	}
+	if err := os.MkdirAll(workspace, 0700); err != nil {
+		return err
+	}
+	if err := copyTree(ctx, siteRoot, workspace, true); err != nil {
+		return fmt.Errorf("copy site template: %w", err)
+	}
+	deps := filepath.Join(siteRoot, "node_modules")
+	if _, err := os.Stat(deps); err != nil {
+		return errors.New("site dependencies missing; run npm --prefix site ci")
+	}
+	if err := os.Symlink(deps, filepath.Join(workspace, "node_modules")); err != nil {
+		if err := copyTree(ctx, deps, filepath.Join(workspace, "node_modules"), false); err != nil {
+			return fmt.Errorf("copy dependencies: %w", err)
+		}
+	}
+	return nil
+}
+
 func copyTree(ctx context.Context, source, target string, exclude bool) error {
 	return filepath.WalkDir(source, func(path string, entry os.DirEntry, err error) error {
 		if err != nil {
@@ -283,8 +245,11 @@ func copyTree(ctx context.Context, source, target string, exclude bool) error {
 		if err != nil {
 			return err
 		}
-		if exclude && entry.IsDir() && rel != "." && (entry.Name() == "node_modules" || entry.Name() == "dist" || entry.Name() == ".astro" || entry.Name() == ".git") {
-			return filepath.SkipDir
+		if exclude && rel != "." && (entry.Name() == "node_modules" || entry.Name() == "dist" || entry.Name() == ".astro" || entry.Name() == ".git") {
+			if entry.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
 		}
 		dest := filepath.Join(target, rel)
 		if entry.IsDir() {
