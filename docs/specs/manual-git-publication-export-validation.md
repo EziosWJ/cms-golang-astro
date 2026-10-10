@@ -42,7 +42,7 @@ GitHub Pages / Cloudflare 自动部署、域名/base 策略及 CMS 构建结果�
 
 随后用隔离 live API 提交任务 #2（Idempotency-Key `live-artifact-acceptance-20261010`）：内容未变，源码解析为 `9a98b6398ae7f3b5ab32ad32daeb7a80ea026e90`，`unchanged=false`，提交 [ae041d7](https://github.com/EziosWJ/CMS_PRE/commit/ae041d74286a2fc7385707f99d0d84fd68fa02ba) 只改动 `cms-input/export.json`（+1/-1），即增量推送只更新固定来源与输入摘要。
 
-该推送触发 [run 38034187445](https://github.com/EziosWJ/CMS_PRE/actions/runs/38034187445)（event `push`，head `ae041d7`），全部步骤成功。日志确认按 `ref: 9a98b6398ae7f3b5ab32ad32daeb7a80ea026e90` 检出源码，而不是分支当时的最新提交；并输出 `Prepared 1 published articles and 2 media paths` 与 `Verified 9 public static files`。
+该推送触发 [run 38034187445](https://github.com/EziosWJ/CMS_PRE/actions/runs/38034187445)（event `push`，head `ae041d7`），全部步骤成功。日志确认 `ref` 为 `9a98b6398ae7f3b5ab32ad32daeb7a80ea026e90`，即检出任务创建时解析并固定的提交，而不是按分支名取构建时的最新版本（该次固定 SHA 恰好也是当时的分支最新提交，机制上仍以固定 SHA 为准）；并输出 `Prepared 1 published articles and 2 media paths` 与 `Verified 9 public static files`。
 
 artifact `cms-site-ae041d74…`（ID 11662234070，230220 字节，zip SHA256 `3880e8e35b537ac963a9fddcb4407b5d49be7ce23f84a7f6371529ab97914972`）已下载校验：9 个文件为 `index.html`、`404.html`、`archives/测试文章a/index.html`、`archives/index.html`、`categories/index.html`、`tags/index.html`、`_astro/theme-model.BZVmSBJ2.css`、`media/images/1.png`、`media/images/3.png`；文章标题、正文与两张媒体均正常渲染；媒体字节与推送输入一致（sha256 `f963e4e0…`、`327c1e68…`，与 `export.json` 校验和相同）；未出现 `manifest.json`、`export.json`、`.release.json`、日志、`master.key` 或 `.env`。运行日志有 `actions/checkout@v4`、`setup-node@v4`、`upload-artifact@v4` 的 Node 20 弃用警告，属信息级，不影响结果。
 
