@@ -2,6 +2,8 @@
 
 远端追踪：[Phase #40](https://github.com/EziosWJ/cms-golang-astro/issues/40) · [Spec #41](https://github.com/EziosWJ/cms-golang-astro/issues/41)。
 
+状态：已完成并关闭。实施 PR [#48](https://github.com/EziosWJ/cms-golang-astro/pull/48) 已合并（merge commit `5b7f7b7f2580abae887d6b3c028f0568643af388`）；GitHub Actions run `37183148369`（PR）与 `37183698363`（main push）全部通过。#40、#41 与 #42–#47 均 CLOSED。
+
 目标：以旧 `EziosWJ/blog/src/themes/comic/` 为表现基准，把 Phase 4 的简化 Comic 升级为新 CMS 的默认主主题，同时保持 Publication Manifest、Site Core、Theme Model、Theme API 边界。
 
 ## 数据边界
