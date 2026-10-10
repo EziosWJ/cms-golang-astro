@@ -9,7 +9,7 @@
 3. 管理后台打开 **GitHub 连接**，填写 fine-grained PAT，限定输入仓库，授予 Contents 读写。检测连接，选择仓库和已有目标分支；空仓库使用其默认分支。
 4. 选择公开 CMS/Astro 源码仓库和分支或标签。源提交必须包含输入校验脚本和工作流模板；每个推送任务解析并固定确切 SHA，未提交的本地模板改动不会进入远端构建。
 5. 保存连接。Token 不回显、不保存在浏览器；只能通过重新填写替换。检测连接证明认证和仓库访问，不等于保证细粒度 Token 的 Contents 写权限或分支保护允许实际提交。
-6. 把 `templates/github-actions/build-site.yml` 复制到输入仓库 `.github/workflows/build-site.yml`，将触发分支改为所选目标分支。由用户安装工作流，CMS 不需要 Workflows 写权限。若仓库为空，可先推送一次初始化，再安装模板。
+6. 把 `templates/github-actions/build-site.yml` 复制到输入仓库 `.github/workflows/build-site.yml`，将触发分支改为所选目标分支。由用户安装工作流，CMS 不需要 Workflows 写权限。若仓库为空，可先推送一次初始化，再安装模板。用 API 或 `git push` 写入 `.github/workflows/` 需要额外权限：经典/OAuth Token 需要 `workflow` scope，细粒度 PAT 需要 `Workflows: Read and write`；缺少时 GitHub 返回 404 而不是 403，所以推荐在网页端 New file 粘贴模板并提交。
 
 ## 推送与构建
 
@@ -37,6 +37,7 @@
 
 - Token 失效或仓库权限不足：替换 Token，检查是否限定了正确仓库及 Contents 读写权限，再重试原任务。
 - 分支保护或远端竞争：CMS 非强制更新，最多三次冲突重试；不强推或回退输入。
+- 安装模板返回 404：这是凭据缺少工作流写权限的平台行为，不代表仓库不存在（仓库不存在同样返回 404，可先用检测连接区分）。改在网页端添加 `.github/workflows/build-site.yml`，或给凭据补 `workflow` scope / `Workflows: Read and write`。
 - 资源缺失或哈希不符：恢复源发布资源或私有输入副本，不从最新工作稿重生成旧任务。
 - Actions 提示源码脚本缺失或主题版本不匹配：先提交并发布对应源码，再选择兼容分支/标签推送新任务。
 - CI 状态在 GitHub 查看，CMS 不轮询、不回调、不标记平台上线。

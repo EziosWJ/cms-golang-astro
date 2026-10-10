@@ -26,6 +26,16 @@
 
 GitHub Pages / Cloudflare 自动部署、域名/base 策略及 CMS 构建结果回写属于后续阶段。主分支合并及生产二进制部署尚未执行。
 
-远端功能分支提交 `6936a6f338b625c2d87537e7ff9ff0db535e3e58` 的 [CI](https://github.com/EziosWJ/cms-golang-astro/actions/runs/38019636346) 已全部通过：Task check（包含嵌入构建）、SQLite、PostgreSQL。公开源码读取已改为复用已配置凭据，避免共享出口匿名额度耗尽；仍明确检查源码仓库公开性。该修复的 API 契约已通过，后端/Admin 最终检查正在执行。
+远端功能分支提交 `6936a6f338b625c2d87537e7ff9ff0db535e3e58` 的 [CI](https://github.com/EziosWJ/cms-golang-astro/actions/runs/38019636346) 已全部通过：Task check（包含嵌入构建）、SQLite、PostgreSQL。公开源码读取已改为复用已配置凭据，避免共享出口匿名额度耗尽；仍明确检查源码仓库公开性。
 
-真实 CMS_PRE 工作流安装尚未成功：当前授权向 workflow Contents 接口写入返回 404；没有把失败认定为安装完成。隔离真实 GitHub API 验收此前因匿名源码限流失败，修复后待重跑。
+修复提交 `952a9d8c6548bd4f7260f95d6da0e1f0b507ee77` 的远端 CI 已核实通过：[push run 38019939980](https://github.com/EziosWJ/cms-golang-astro/actions/runs/38019939980) 与 [PR run 38019995943](https://github.com/EziosWJ/cms-golang-astro/actions/runs/38019995943)，两者的 head 均为该 SHA，Task check（含嵌入构建）、SQLite migration/API contract、PostgreSQL integration contract 三项 job 全部 success。
+
+CMS_PRE 工作流仍未安装，且当前授权写入 `.github/workflows/` 返回 404 的原因已定位：GitHub 对工作流文件写入要求额外权限，经典/OAuth Token 需要 `workflow` scope，细粒度 PAT 需要 `Workflows: Read and write`。首版连接 PAT 只授予 Contents 读写，本机 `gh` 凭据 scope 为 `admin:public_key, gist, read:org, repo`，同样不含 `workflow`，因此两类凭据都会得到 404 而不是 403。
+
+按[规格](../specs/manual-git-publication-export.md)的非目标（自动安装工作流）与 [ADR-0006](../adr/0006-manual-git-publication-export.md)，CMS 不修改工作流，模板由用户安装，该 404 不是功能缺陷，也不记为安装成功。`EziosWJ/CMS_PRE` 当前只有 `cms-input/`，没有 `.github/workflows/`。
+
+真实输入推送已成功：使用隔离副本中的当前本地成功 Release（1 篇文章、2 个媒体），通过真实 CMS API 完成连接与任务 #1。源码固定 `952a9d8c6548bd4f7260f95d6da0e1f0b507ee77`，目标提交 [2028975](https://github.com/EziosWJ/CMS_PRE/commit/202897580c850b0d96e8dc389503f079e892f482)。没有改动生产发布指针。工作流安装受上述权限限制，因此自动触发与远端 artifact 尚待用户安装模板后验收。
+
+安装工作流前，按模板步骤在本机复刻了远端构建路径：用 `git archive` 取出固定源码 `952a9d8c…`，用 GitHub tarball 取出真实输入提交 `2028975`，依次执行 `prepare-git-site.mjs`、`npm ci`、`CMS_INPUT_PATH=… npm run build`、`prepare-git-site.mjs --check-output`。结果为“Prepared 1 published articles and 2 media paths”、308 个依赖包、6 个页面构建成功、`Verified 9 public static files`，`dist/` 含 `index.html`、`404.html`、`media/`、`_astro/`、`archives/`、`categories/`、`tags/`。这证明固定 SHA 含所需脚本且真实输入通过契约校验，但按 Git-05 验收口径仍只是本地复刻，不当作远端 Actions 成功。
+
+后续顺序：由用户安装输入仓库工作流并验收远端 artifact；安装后可用 GitHub 的重新运行入口触发，不需要制造 Git 空提交。远端 artifact 通过后再考虑主分支合并及生产部署。
