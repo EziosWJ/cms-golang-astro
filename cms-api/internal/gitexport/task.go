@@ -118,7 +118,11 @@ func (s *Service) Submit(ctx context.Context, meta audit.Metadata, key string) (
 	if err != nil || !connection.HasCredential {
 		return Task{}, ErrCredential
 	}
-	sha, err := s.GitHub.Resolve(ctx, connection.SourceRepository, connection.SourceRef)
+	token, err := s.token(ctx, "")
+	if err != nil {
+		return Task{}, err
+	}
+	sha, err := s.GitHub.Resolve(ctx, connection.SourceRepository, connection.SourceRef, token)
 	if err != nil {
 		return Task{}, err
 	}

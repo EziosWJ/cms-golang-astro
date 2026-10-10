@@ -77,6 +77,7 @@ func (g GitHub) request(ctx context.Context, token, method, path string, in, out
 	if err != nil {
 		return ErrRemote
 	}
+	req.Header.Set("User-Agent", "cms-golang-astro")
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
 	if token != "" {
@@ -159,14 +160,18 @@ func (g GitHub) Options(ctx context.Context, token, repo, kind string) ([]RefOpt
 	}
 	return out, nil
 }
-func (g GitHub) Resolve(ctx context.Context, repo, ref string) (string, error) {
-	if _, err := g.repository(ctx, "", repo); err != nil {
+func (g GitHub) Resolve(ctx context.Context, repo, ref string, credentials ...string) (string, error) {
+	token := ""
+	if len(credentials) > 0 {
+		token = credentials[0]
+	}
+	if _, err := g.repository(ctx, token, repo); err != nil {
 		return "", err
 	}
 	var commit struct {
 		SHA string `json:"sha"`
 	}
-	err := g.request(ctx, "", "GET", "/repos/"+repo+"/commits/"+url.PathEscape(ref), nil, &commit)
+	err := g.request(ctx, token, "GET", "/repos/"+repo+"/commits/"+url.PathEscape(ref), nil, &commit)
 	if err == nil && !regexp.MustCompile(`^[a-f0-9]{40}$`).MatchString(commit.SHA) {
 		return "", ErrRemote
 	}

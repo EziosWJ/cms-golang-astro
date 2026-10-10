@@ -206,7 +206,7 @@ func (s *Service) Save(ctx context.Context, in ConnectionInput, meta audit.Metad
 			return old, ErrBranch
 		}
 	}
-	if _, err = s.GitHub.Resolve(ctx, in.SourceRepository, in.SourceRef); err != nil {
+	if _, err = s.GitHub.Resolve(ctx, in.SourceRepository, in.SourceRef, token); err != nil {
 		return old, err
 	}
 	// An existing ciphertext with a missing key must first be disconnected. Do not replace its key silently.

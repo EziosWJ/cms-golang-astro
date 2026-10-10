@@ -87,8 +87,10 @@ func (h *Handler) Register(r gin.IRouter) {
 		}
 		token := ""
 		var e error
-		if !in.Source {
-			token, e = h.Service.token(c.Request.Context(), in.Token)
+		token, e = h.Service.token(c.Request.Context(), in.Token)
+		if in.Source && errors.Is(e, ErrCredential) {
+			token = ""
+			e = nil
 		}
 		if e != nil {
 			reply(c, nil, e)

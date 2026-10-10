@@ -18,10 +18,14 @@
 
 浏览器复用 Playwright 1.63.0 / Chromium 153.0.8010.12，使用隔离真实 API/SQLite 与独立 worker，仅模拟外部 GitHub。已通过页面连接、检测仓库、空仓库分支、保存后及刷新后 Token 不回显、不进浏览器存储、手动首次推送、重复输入、详情/提交/Actions 入口和 390px 表单检查。
 
-PostgreSQL 检查未通过环境启动阶段：WSL 的 Docker Desktop 集成不可用，临时 PostgreSQL 容器无法启动。已维护两套迁移并把新增 PostgreSQL 契约测试纳入现有检查匹配范围；不能宣称实际 PostgreSQL 验收通过。
+本机 PostgreSQL 检查未通过环境启动阶段：WSL 的 Docker Desktop 集成不可用，临时 PostgreSQL 容器无法启动。已维护两套迁移并把新增 PostgreSQL 契约测试纳入现有检查匹配范围；不能宣称实际 PostgreSQL 验收通过。
 
 ## 真实仓库验收与剩余事项
 
 目标 `EziosWJ/CMS_PRE` 已确认公开且现有授权可写，初始为空仓库。独立源码分支、真实 push 触发与 artifact 验收在执行中；完成后补记固定 SHA、提交及 Actions 链接。
 
 GitHub Pages / Cloudflare 自动部署、域名/base 策略及 CMS 构建结果回写属于后续阶段。主分支合并及生产二进制部署尚未执行。
+
+远端功能分支提交 `6936a6f338b625c2d87537e7ff9ff0db535e3e58` 的 [CI](https://github.com/EziosWJ/cms-golang-astro/actions/runs/38019636346) 已全部通过：Task check（包含嵌入构建）、SQLite、PostgreSQL。公开源码读取已改为复用已配置凭据，避免共享出口匿名额度耗尽；仍明确检查源码仓库公开性。该修复的 API 契约已通过，后端/Admin 最终检查正在执行。
+
+真实 CMS_PRE 工作流安装尚未成功：当前授权向 workflow Contents 接口写入返回 404；没有把失败认定为安装完成。隔离真实 GitHub API 验收此前因匿名源码限流失败，修复后待重跑。
