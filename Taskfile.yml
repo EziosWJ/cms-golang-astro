@@ -115,6 +115,12 @@ tasks:
     cmds:
       - npm run lint
 
+  admin:test:
+    desc: 运行 CMS Admin 脚本测试
+    dir: cms-admin
+    cmds:
+      - node --test
+
   admin:date:check:
     desc: 检查内容日期及夏令时边界
     cmds:
@@ -151,6 +157,7 @@ tasks:
     deps:
       - backend:check
       - admin:lint
+      - admin:test
       - admin:date:check
       - admin:build
       - site:themes:check
