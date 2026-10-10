@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ApiError, getErrorMessage } from "@/lib/api-error";
+import { createUUID } from "@/lib/uuid";
 import { submitPublication } from "@/api/publishing";
 import { PublicationTask } from "../publications/task";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
@@ -31,7 +32,7 @@ export function SiteConfigPage() {
   function selectTheme(theme: ThemeDefinition) { setValues((current) => current ? { ...current, theme: theme.id, themeVersion: theme.version } : current); setMessage(""); setFields((current) => ({ ...current, theme: "" })); }
   async function save() { if (!values || !working || saving || conflict) return; setSaving(true); setError(""); setFields({}); try { const result = await saveSiteConfig(working.version, values); setWorking(result); setValues(result.data); setMessage("已保存，尚未应用到网站"); } catch (err) { if (err instanceof ApiError) { if (err.status === 409) setConflict(true); if (err.fieldErrors) setFields(err.fieldErrors); } setError(getErrorMessage(err, "保存失败，本地内容已保留")); } finally { setSaving(false); } }
 
-  async function publish() { if (!working?.revisionId || saving) return; setSaving(true); setError("");request.current ??= { key: crypto.randomUUID(), revision: working.revisionId }; try { const task = await submitPublication({ kind: "config", configRevisionId: request.current.revision }, request.current.key);request.current = null;setTaskId(task.id);setConfirmPublish(false); } catch (err) { if (err instanceof ApiError && err.type !== "network") request.current = null;setError(getErrorMessage(err, "发布提交失败，可重试同一请求")); } finally {setSaving(false);} }
+  async function publish() { if (!working?.revisionId || saving) return; setSaving(true); setError("");request.current ??= { key: createUUID(), revision: working.revisionId }; try { const task = await submitPublication({ kind: "config", configRevisionId: request.current.revision }, request.current.key);request.current = null;setTaskId(task.id);setConfirmPublish(false); } catch (err) { if (err instanceof ApiError && err.type !== "network") request.current = null;setError(getErrorMessage(err, "发布提交失败，可重试同一请求")); } finally {setSaving(false);} }
   const selectedTheme = themes.find((theme) => theme.id === values?.theme);
 
   return <PermissionGuard permissionCode="content:config:edit" fallback={<EmptyState title="无访问权限" />}><PageHeader title="站点与作者配置" description="展示作者独立于系统用户。保存工作配置不会改变线上站点；主题切换将在下一次配置发布后生效。" />

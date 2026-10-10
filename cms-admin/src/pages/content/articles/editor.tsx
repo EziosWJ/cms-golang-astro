@@ -23,6 +23,7 @@ import { getMedia, uploadMedia } from "@/api/media";
 import { hasPermission } from "@/lib/permission";
 import { formatContentDate, parseContentDate } from "@/lib/content-date";
 import { ApiError, getErrorMessage } from "@/lib/api-error";
+import { createUUID } from "@/lib/uuid";
 import { MediaSelector } from "../media/selector";
 import { MarkdownMediaImage, MarkdownMediaLink } from "../media/preview";
 import { TaxonomyPicker } from "../taxonomy/picker";
@@ -44,7 +45,7 @@ function slugSuggestion(title: string) {
 export function ArticleEditorPage() {
   const { id } = useParams();
   const route=useRef<{ id?:string; key:string }>({id,key:id ?? "new"});
- if(route.current.id !== id) { const migrating=route.current.id===undefined && !!id; route.current={id,key:migrating ? route.current.key : id ?? crypto.randomUUID()}; }
+ if(route.current.id !== id) { const migrating=route.current.id===undefined && !!id; route.current={id,key:migrating ? route.current.key : id ?? createUUID()}; }
  return <ArticleEditor key={route.current.key} id={id} />;
 }
 
@@ -210,7 +211,7 @@ if (isNew) { getEditorContext(controller.signal).then((context)=> { if (!control
       const input: ArticleDraftInput = { ...snapshot, displayDate: parseContentDate(snapshot.displayDate,timezone) };
       let result: ArticleDetail;
  if (activeID.current === null) {
- createRequest.current ??= { ...input, requestKey:crypto.randomUUID(), createMode:mode };
+ createRequest.current ??= { ...input, requestKey:createUUID(), createMode:mode };
  if (copyKey) { try { localStorage.setItem(copyKey, JSON.stringify({ values:snapshot, baseline, version:null, createRequest:createRequest.current, savedAt:new Date().toISOString() })); } catch { setStorageError("无法保存恢复副本；请求重试仍使用同一身份。"); } }
  const creationMode=createRequest.current.createMode;
  result = await createArticle(createRequest.current);
@@ -276,7 +277,7 @@ if (isNew) { getEditorContext(controller.signal).then((context)=> { if (!control
       await queue.current;
       if (conflictRef.current) return;
       const input: PublishInput = { kind, articleId: activeID.current!, ...(kind !== "unpublish" ? { save: { ...values, displayDate: parseContentDate(values.displayDate,timezone), expectedVersion: detailRef.current!.draft.version, mode: "manual" as const } } : {}) };
-      publishRequest.current ??= { input, key: crypto.randomUUID() };
+      publishRequest.current ??= { input, key: createUUID() };
       const request = publishRequest.current;
       const task = await submitPublication(request.input, request.key);
       publishRequest.current = null; setTaskId(task.id);
