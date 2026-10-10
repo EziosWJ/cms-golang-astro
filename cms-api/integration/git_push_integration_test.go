@@ -24,6 +24,7 @@ import (
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/content"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/deployment"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/gitexport"
+	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/media"
 	database "github.com/EziosWJ/cms-golang-astro/cms-api/internal/platform/database"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/publishing"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/siteconfig"
@@ -259,13 +260,29 @@ func gitPushContract(t *testing.T, db *database.Database, dir string) {
 	if w := request("POST", "/api/v1/git-pushes", "no-baseline", nil); w.Code != 400 {
 		t.Fatalf("accepted without baseline: %s", w.Body)
 	}
-	setRelease := func(name string) publishing.Release {
+	type releaseMedia struct{ path, body string }
+	setRelease := func(name string, resources ...releaseMedia) publishing.Release {
 		key := mockSHA(name)[:32]
 		root := filepath.Join(dir, "releases", key)
 		if err := os.MkdirAll(root, 0700); err != nil {
 			t.Fatal(err)
 		}
 		manifest := builder.Manifest{ReleaseKey: key, Config: siteconfig.Revision{Data: siteconfig.Data{SiteName: name, Theme: "comic", ThemeVersion: "1.1.0", PublicURL: "https://example.test", Language: "zh-CN", Timezone: "Asia/Shanghai", AuthorName: "作者"}}, Articles: []builder.Article{}, Media: []builder.Media{}}
+		files := map[string]string{}
+		for index, resource := range resources {
+			relative := strings.TrimPrefix(resource.path, "/")
+			target := filepath.Join(root, relative)
+			if err = os.MkdirAll(filepath.Dir(target), 0700); err != nil {
+				t.Fatal(err)
+			}
+			if err = os.WriteFile(target, []byte(resource.body), 0600); err != nil {
+				t.Fatal(err)
+			}
+			sum := sha256.Sum256([]byte(resource.body))
+			files[relative] = hex.EncodeToString(sum[:])
+			// 同一份字节同时以规范化路径与旧别名路径发布，别名不改变内容身份。
+			manifest.Media = append(manifest.Media, builder.Media{File: media.File{ID: int64(index + 1), OriginalName: filepath.Base(relative), MimeType: "image/png", FileSize: int64(len(resource.body))}, Path: resource.path})
+		}
 		task := publishing.Task{Kind: "config", Status: "succeeded", CreatedAt: time.Now().UTC(), CreatedBy: 1, UpdatedAt: time.Now().UTC()}
 		if err := db.GORM.Create(&task).Error; err != nil {
 			t.Fatal(err)
@@ -285,7 +302,8 @@ func gitPushContract(t *testing.T, db *database.Database, dir string) {
 		}
 		html := []byte("<html>" + name + "</html>")
 		sum := sha256.Sum256(html)
-		marker, _ := json.Marshal(builder.Marker{AttemptID: attempt.ID, ReleaseKey: key, ManifestHash: hash, Files: map[string]string{"index.html": hex.EncodeToString(sum[:])}})
+		files["index.html"] = hex.EncodeToString(sum[:])
+		marker, _ := json.Marshal(builder.Marker{AttemptID: attempt.ID, ReleaseKey: key, ManifestHash: hash, Files: files})
 		if err = os.WriteFile(filepath.Join(root, "index.html"), html, 0600); err != nil {
 			t.Fatal(err)
 		}
@@ -429,4 +447,100 @@ func gitPushContract(t *testing.T, db *database.Database, dir string) {
 	if w := request("GET", "/api/v1/git-pushes?page=1&pageSize=2", "", nil); w.Code != 200 || strings.Contains(w.Body.String(), `"manifest"`) {
 		t.Fatalf("list: %s", w.Body)
 	}
+	// 媒体别名保留旧公开路径，被替换的快照必须删除生成目录中不再需要的文件。
+	treeBlobs := func(sha string) map[string]string {
+		out := map[string]string{}
+		var walk func(prefix, tree string)
+		walk = func(prefix, tree string) {
+			for _, entry := range m.trees[tree] {
+				path := entry.Path
+				if prefix != "" {
+					path = prefix + "/" + entry.Path
+				}
+				out[path] = entry.SHA
+				if entry.Type == "tree" {
+					walk(path, entry.SHA)
+				}
+			}
+		}
+		walk("", sha)
+		return out
+	}
+	body := "alias-media-bytes"
+	setRelease("media", releaseMedia{"/media/images/1.png", body}, releaseMedia{"/images/1.png", body})
+	mediaBase := m.writes
+	pushed := run(submit("media-input"))
+	if pushed.Status != "succeeded" || m.writes != mediaBase+1 {
+		t.Fatalf("media push: %+v writes=%d", pushed, m.writes)
+	}
+	files := treeBlobs(m.commits[m.head].Tree)
+	for _, want := range []string{"cms-input/export.json", "cms-input/manifest.json", "cms-input/public/media/images/1.png", "cms-input/public/images/1.png"} {
+		if _, ok := files[want]; !ok {
+			t.Fatalf("missing %s in %v", want, files)
+		}
+	}
+	if string(m.blobs[files["cms-input/public/media/images/1.png"]]) != body || string(m.blobs[files["cms-input/public/images/1.png"]]) != body {
+		t.Fatal("alias bytes differ from published media")
+	}
+	setRelease("media-replaced", releaseMedia{"/media/images/2.png", "replacement-bytes"})
+	replacedBase := m.writes
+	replaced := run(submit("media-replaced-input"))
+	if replaced.Status != "succeeded" || m.writes != replacedBase+1 {
+		t.Fatalf("replaced push: %+v writes=%d", replaced, m.writes)
+	}
+	files = treeBlobs(m.commits[m.head].Tree)
+	if _, ok := files["cms-input/public/media/images/2.png"]; !ok {
+		t.Fatalf("new media missing in %v", files)
+	}
+	if _, ok := files["cms-input/public/media/images/1.png"]; ok {
+		t.Fatal("stale generated media retained")
+	}
+	if _, ok := files["cms-input/public/images/1.png"]; ok {
+		t.Fatal("stale generated alias retained")
+	}
+	if _, ok := files[".github"]; !ok {
+		t.Fatal("human maintained workflow removed")
+	}
+	// 维护清理保护尚未完成私有副本的推送源 Release，副本就绪后才允许清理。
+	pinned := setRelease("pinned-source")
+	push := gitexport.Task{ReleaseID: pinned.ID, ReleaseKey: pinned.ReleaseKey, Manifest: pinned.Manifest, ManifestHash: pinned.ManifestHash, Repository: "author/inputs", Branch: "main", SourceRepository: "source/cms", SourceSHA: m.source, Status: "queued", CreatedAt: time.Now().UTC(), UpdatedAt: time.Now().UTC(), CreatedBy: 1}
+	if err = db.GORM.Create(&push).Error; err != nil {
+		t.Fatal(err)
+	}
+	for index := 1; index <= 6; index++ {
+		setRelease(fmt.Sprintf("later-%d", index))
+	}
+	worker := &publishing.Worker{DB: db.GORM, Root: dir}
+	report, cleanupErr := worker.Cleanup(ctx, time.Nanosecond, time.Nanosecond, false)
+	if cleanupErr != nil {
+		t.Fatal(cleanupErr)
+	}
+	if !keptRelease(report.KeptReleases, pinned.ID) {
+		t.Fatalf("unprepared push source release not pinned: %+v", report)
+	}
+	if _, statErr := os.Stat(filepath.Join(dir, "releases", pinned.ReleaseKey)); statErr != nil {
+		t.Fatal("pinned release artifacts removed")
+	}
+	if err = db.GORM.Model(&gitexport.Task{}).Where("id=?", push.ID).Update("prepared", true).Error; err != nil {
+		t.Fatal(err)
+	}
+	report, cleanupErr = worker.Cleanup(ctx, time.Nanosecond, time.Nanosecond, false)
+	if cleanupErr != nil {
+		t.Fatal(cleanupErr)
+	}
+	if keptRelease(report.KeptReleases, pinned.ID) {
+		t.Fatalf("prepared push source release still pinned: %+v", report)
+	}
+	if _, statErr := os.Stat(filepath.Join(dir, "releases", pinned.ReleaseKey)); !os.IsNotExist(statErr) {
+		t.Fatal("prepared push source release artifacts retained")
+	}
+}
+
+func keptRelease(values []int64, want int64) bool {
+	for _, value := range values {
+		if value == want {
+			return true
+		}
+	}
+	return false
 }
