@@ -8,4 +8,4 @@ export const themeManifest = {
   compatibility: { cmsThemeApi: '1' },
   capabilities: ['home', 'article', 'archive', 'category', 'tag', '404'],
 };
-export const shikiConfig = { theme: 'github-light', wrap: true };
+export const shikiConfig = { theme: 'github-dark', wrap: true };
