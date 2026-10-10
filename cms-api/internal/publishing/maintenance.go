@@ -54,6 +54,14 @@ func (w *Worker) Cleanup(ctx context.Context, previewTTL, failedTTL time.Duratio
 	if state.CurrentReleaseID != nil {
 		keep[*state.CurrentReleaseID] = true
 	}
+	// Unprepared Git inputs pin the immutable source until their private copy is verified.
+	var pinned []int64
+	if err := w.DB.WithContext(ctx).Table("cms_git_push").Where("prepared = ? AND status <> 'superseded'", false).Pluck("release_id", &pinned).Error; err != nil {
+		return report, err
+	}
+	for _, id := range pinned {
+		keep[id] = true
+	}
 	var releases []Release
 	if err := w.DB.WithContext(ctx).Where("cleaned_at IS NULL").Order("id DESC").Find(&releases).Error; err != nil {
 		return report, err

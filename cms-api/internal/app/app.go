@@ -14,6 +14,7 @@ import (
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/dept"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/dictionary"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/filemgmt"
+	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/gitexport"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/logmgmt"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/media"
 	"github.com/EziosWJ/cms-golang-astro/cms-api/internal/notification"
@@ -31,6 +32,7 @@ import (
 // Core management services are required; notification routes are enabled when
 // the optional Notification service is supplied.
 type Dependencies struct {
+	GitExport    *gitexport.Handler
 	Auth         *auth.Service
 	RBAC         *rbac.Service
 	Department   *dept.Service
@@ -106,6 +108,9 @@ func New(cfg config.Config, readiness platformhttp.ReadinessChecker, deps Depend
 		}
 		if deps.Media != nil {
 			deps.Media.Register(contentAPI)
+		}
+		if deps.GitExport != nil {
+			deps.GitExport.Register(contentAPI)
 		}
 		if deps.SiteConfig != nil {
 			deps.SiteConfig.Register(contentAPI)
