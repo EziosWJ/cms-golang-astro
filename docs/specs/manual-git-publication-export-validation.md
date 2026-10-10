@@ -1,6 +1,6 @@
 # 手动 Git 输入推送：实施与验证记录
 
-2026-10-10，关联规格 #51、任务 #52–#56。代码已实施，生产程序未部署，源码主分支未合并。
+2026-10-10，关联规格 #51、任务 #52–#56。代码已实施并合并到 `main`（PR #57 → squash `3a9a8fa`，其后修复提交至 `1aae8a6`），生产程序未部署。
 
 ## 已实现
 
@@ -24,7 +24,7 @@
 
 目标 `EziosWJ/CMS_PRE` 已确认公开且现有授权可写，初始为空仓库。真实连接、输入推送、模板安装与 push 触发的远端 artifact 验收均已完成，证据见下。
 
-GitHub Pages / Cloudflare 自动部署、域名/base 策略及 CMS 构建结果回写属于后续阶段。主分支合并及生产二进制部署尚未执行。
+GitHub Pages / Cloudflare 自动部署、域名/base 策略及 CMS 构建结果回写属于后续阶段；Pages 阶段规格与工单见 [#58](https://github.com/EziosWJ/cms-golang-astro/issues/58)–[#62](https://github.com/EziosWJ/cms-golang-astro/issues/62)。生产二进制部署尚未执行。
 
 远端功能分支提交 `6936a6f338b625c2d87537e7ff9ff0db535e3e58` 的 [CI](https://github.com/EziosWJ/cms-golang-astro/actions/runs/38019636346) 已全部通过：Task check（包含嵌入构建）、SQLite、PostgreSQL。公开源码读取已改为复用已配置凭据，避免共享出口匿名额度耗尽；仍明确检查源码仓库公开性。
 
@@ -48,4 +48,14 @@ artifact `cms-site-ae041d74…`（ID 11662234070，230220 字节，zip SHA256 `3
 
 Git-05 的“安装模板后 push 触发的实际 Actions 验收”至此完成。
 
-剩余事项：主分支合并与生产部署尚未执行；GitHub Pages / Cloudflare 部署、域名与 base 策略、CMS 构建结果回写属于后续阶段。远端重新运行使用 GitHub 的重跑入口，不需要制造 Git 空提交。
+剩余事项：生产部署尚未执行；GitHub Pages / Cloudflare 部署、域名与 base 策略、CMS 构建结果回写属于后续阶段（Pages 已单独发布规格 [#58](https://github.com/EziosWJ/cms-golang-astro/issues/58) 与工单 [#59](https://github.com/EziosWJ/cms-golang-astro/issues/59)–[#62](https://github.com/EziosWJ/cms-golang-astro/issues/62)）。远端重新运行使用 GitHub 的重跑入口，不需要制造 Git 空提交。
+
+## 合并后修复与补充验证
+
+合并到 `main` 后处理了三项遗留问题，均未改变已验收的对外行为：
+
+- 提交成功、详情查询失败时的重试：原来创建/重试成功后会先清除幂等身份，随后详情读取失败会让"重试同一请求"重新发起一次创建 → 新建当前版本任务。现在只把创建/重试请求自身的失败视为"结果未确认"，任务一旦被接受就保留原任务与幂等键，直到详情读取成功才清除；详情失败时重试沿用同一个键，服务端按该键重放返回同一任务。逻辑抽到 `cms-admin/src/lib/git-push-pending.ts`，回归用例在 `cms-admin/scripts/git-push-pending.test.mjs`（含"详情读取失败后重试复用同一键"与"任务 id 不一致时拒绝提交"）。
+- 推送历史状态：列表改用既有 `useListPage`，加载状态只在首次无数据时显示骨架屏（后台轮询不再替换已有表格）、每次加载开始时清除错误（网络恢复后自动消失）、记录被清理导致当前页超出范围时回到最后一个有效页。
+本轮检查结果（2026-10-10，本机）：`task check` 退出 0（Go test/vet、Admin lint、`node --test` 9 个用例、日期检查、Admin 构建、Comic 与 Vaporwave 构建）。`task db:integration:sqlite` 退出 0（integration 包 35.8s），其中新增的媒体别名、旧生成资源删除与清理保护用例已用负向对照确认断言实际执行。`task db:integration:postgres` 在本机仍无法执行：WSL 的 Docker 集成不可用，PostgreSQL 临时容器无法启动，因此本机不声称 PostgreSQL 通过；同一契约由 SQLite 与 PostgreSQL 两个变体共同调用，CI 的 PostgreSQL integration contract 作业覆盖 PostgreSQL 侧。
+
+- 测试缺口：#59 边界之外补了媒体别名与旧生成资源删除（推送树中别名路径与规范路径字节相同、被替换快照的旧别名消失、人工文件保留），以及维护清理对未完成私有副本的推送源 Release 的保护（`prepared=false` 保留、置为 `true` 后可清理）。新增 `admin:test`（`node --test`）并纳入 `task check`，使 Admin 脚本测试成为质量门禁的一部分。
