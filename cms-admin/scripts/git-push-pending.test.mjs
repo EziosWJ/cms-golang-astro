@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { idlePushSession, nextPushSession, pendingIdentity } from "../src/lib/git-push-pending.ts";
+import { acceptanceOutcome, idlePushSession, nextPushSession, pendingIdentity } from "../src/lib/git-push-pending.ts";
 
 const keys = (...values) => { let index = 0; return () => values[index++]; };
 
@@ -47,4 +47,22 @@ test("请求被明确拒绝后允许重新开始", () => {
   assert.equal(session.pending, null);
   assert.equal(session.retryVisible, false);
   assert.equal(pendingIdentity(session, undefined, keys("k2")).key, "k2");
+});
+
+test("只有推送权限时接受任务即完成流程，不进入待确认状态", () => {
+  const session = { pending: { key: "k1", id: undefined }, retryVisible: false };
+  assert.deepEqual(nextPushSession(session, acceptanceOutcome(false)), idlePushSession);
+  assert.deepEqual(pendingIdentity(nextPushSession(session, acceptanceOutcome(false)), undefined, keys("k2")), { key: "k2", id: undefined });
+});
+
+test("有查看权限时接受任务后继续等待详情", () => {
+  const session = nextPushSession({ pending: { key: "k1", id: undefined }, retryVisible: false }, acceptanceOutcome(true));
+  assert.deepEqual(session.pending, { key: "k1", id: undefined });
+  assert.equal(session.retryVisible, false);
+});
+
+test("详情被明确拒绝时不再要求重试同一请求", () => {
+  const session = nextPushSession({ pending: { key: "k1", id: 7 }, retryVisible: false }, "detail-rejected");
+  assert.deepEqual(session, idlePushSession);
+  assert.deepEqual(pendingIdentity(session, undefined, keys("k2")), { key: "k2", id: undefined });
 });

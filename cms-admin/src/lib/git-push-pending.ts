@@ -6,7 +6,8 @@ export type PushOutcome =
   | "rejected" // 服务端明确拒绝（4xx）：请求未被接受
   | "unconfirmed" // 网络失败或 5xx：请求结果未知
   | "accepted" // 服务端已返回任务，详情尚未读到
-  | "detail-failed" // 任务已建立，仅详情读取失败
+  | "detail-failed" // 任务已建立，仅详情读取失败（网络或服务端问题，可重试）
+  | "detail-rejected" // 任务已建立，但详情被明确拒绝（如缺少查看权限）
   | "detail-loaded"; // 任务与详情都已确认
 
 export const idlePushSession: PushSession = { pending: null, retryVisible: false };
@@ -23,13 +24,21 @@ export function pendingIdentity(session: PushSession, id: number | undefined, ke
 }
 
 /**
- * 请求结果到会话状态的迁移。只有详情读取成功或请求被明确拒绝才清除身份：
+ * 请求结果到会话状态的迁移。只有详情读取成功、或详情/请求被明确拒绝才清除身份：
  * “提交成功但详情查询失败”必须保留原任务与幂等键，重试时服务端按同一键重放，
  * 不会新建一个当前版本的任务。
  */
 export function nextPushSession(session: PushSession, outcome: PushOutcome): PushSession {
-  if (outcome === "detail-loaded" || outcome === "rejected") {
+  if (outcome === "detail-loaded" || outcome === "rejected" || outcome === "detail-rejected") {
     return idlePushSession;
   }
   return { pending: session.pending, retryVisible: outcome !== "accepted" };
+}
+
+/**
+ * 只有推送权限时没有查看权限，详情接口会返回 403：任务一旦被接受就视为流程完成，
+ * 否则会一直保留待确认状态并挡住后续推送。
+ */
+export function acceptanceOutcome(canReadDetail: boolean): PushOutcome {
+  return canReadDetail ? "accepted" : "detail-loaded";
 }
