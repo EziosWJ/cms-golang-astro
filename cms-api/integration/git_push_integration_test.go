@@ -521,7 +521,7 @@ func gitPushContract(t *testing.T, db *database.Database, dir string) {
 	if _, statErr := os.Stat(filepath.Join(dir, "releases", pinned.ReleaseKey)); statErr != nil {
 		t.Fatal("pinned release artifacts removed")
 	}
-	if err = db.GORM.Model(&gitexport.Task{}).Where("id=?", push.ID).Update("prepared", true).Error; err != nil {
+	if err = db.GORM.Model(&gitexport.Task{}).Where("id=?", push.ID).Updates(map[string]any{"prepared": true, "status": "succeeded"}).Error; err != nil {
 		t.Fatal(err)
 	}
 	report, cleanupErr = worker.Cleanup(ctx, time.Nanosecond, time.Nanosecond, false)
@@ -533,6 +533,43 @@ func gitPushContract(t *testing.T, db *database.Database, dir string) {
 	}
 	if _, statErr := os.Stat(filepath.Join(dir, "releases", pinned.ReleaseKey)); !os.IsNotExist(statErr) {
 		t.Fatal("prepared push source release artifacts retained")
+	}
+
+	// 私有副本准备完成后源 Release 可被清理，重试仍必须从私有副本成功推送。
+	m.source = strings.Repeat("e", 40)
+	m.conflicts = 3
+	failed := run(submit("copy-before-cleanup"))
+	if failed.Status != "failed" || !failed.Prepared {
+		t.Fatalf("expected prepared failure: %+v", failed)
+	}
+	inputCopy := filepath.Join(service.Root, "inputs", fmt.Sprint(failed.ID), "export.json")
+	if _, err = os.Stat(inputCopy); err != nil {
+		t.Fatal("private input copy missing after preparation")
+	}
+	for index := 1; index <= 6; index++ {
+		setRelease(fmt.Sprintf("after-copy-%d", index))
+	}
+	copyReport, copyErr := worker.Cleanup(ctx, time.Nanosecond, time.Nanosecond, false)
+	if copyErr != nil {
+		t.Fatal(copyErr)
+	}
+	if keptRelease(copyReport.KeptReleases, failed.ReleaseID) {
+		t.Fatalf("prepared source release still pinned: %+v", copyReport)
+	}
+	if _, statErr := os.Stat(filepath.Join(dir, "releases", failed.ReleaseKey)); !os.IsNotExist(statErr) {
+		t.Fatal("prepared source release artifacts retained")
+	}
+	m.conflicts = 0
+	if w := request("POST", fmt.Sprintf("/api/v1/git-pushes/%d/retry", failed.ID), "copy-before-cleanup-retry", nil); w.Code != 200 {
+		t.Fatalf("retry %s", w.Body)
+	}
+	writes := m.writes
+	fromCopy := run(failed)
+	if fromCopy.Status != "succeeded" || m.writes != writes+1 {
+		t.Fatalf("retry from private copy: %+v writes=%d", fromCopy, m.writes)
+	}
+	if _, err = os.Stat(inputCopy); err != nil {
+		t.Fatal("private input copy removed during retry")
 	}
 }
 
