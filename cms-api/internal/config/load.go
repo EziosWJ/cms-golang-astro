@@ -157,7 +157,7 @@ func defaultValues() map[string]interface{} {
 		"publication.worker_enabled":             true,
 		"publication.build_timeout":              "5m",
 		"service.name":                           "cms-api",
-		"http.address":                           ":8080",
+		"http.address":                           ":8200",
 		"http.trusted_proxies":                   []string{},
 		"http.read_header_timeout":               "10s",
 		"http.read_timeout":                      "5m",

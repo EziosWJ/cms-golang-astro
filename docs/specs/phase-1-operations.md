@@ -6,7 +6,7 @@
 
 先在仓库根目录安装锁定依赖 `npm --prefix cms-admin ci`、`npm --prefix site ci`。使用 `task db:migrate:sqlite` 显式执行 schema/seed，API 与 worker 不自动迁移。
 
-运行 `task dev`，在显式迁移成功后同时启动含内置 worker 的 SQLite API、Admin、正式产物静态服务与 Astro 模板开发服务器。API 默认 `:8099`、Admin 默认 `:5173`、正式站点默认 `:8081`、模板开发服务器默认 `:4321`。后台发布完成后查看 `http://localhost:8081`；首次配置发布成功前正式站点返回 404。已经运行旧入口时需停止并重新执行 `task dev`，不要同时另开第二个 worker。
+运行 `task dev`，在显式迁移成功后同时启动含内置 worker 的 SQLite API、Admin、正式产物静态服务与 Astro 模板开发服务器。API 默认 `:8200`、Admin 默认 `:5173`、正式站点默认 `:8201`、模板开发服务器默认 `:4321`。后台发布完成后查看 `http://localhost:8201`；首次配置发布成功前正式站点返回 404。已经运行旧入口时需停止并重新执行 `task dev`，不要同时另开第二个 worker。
 
 也可分别运行 `task api:sqlite`、`task admin`、`task site:serve`。`task dev:cms` 只启动 API 与 Admin，需要另行启动 worker 才能处理发布及预览任务。后台开发服务器代理 `/api`；生产建议后台及 `/api/v1/previews/` 同源代理到 API，公开域名代理到 staticweb。预览短期 HttpOnly Cookie 限定到单次预览路径，每次资源请求核实 Session、启用用户和编辑权限；不能把私有预览目录挂成公开文件目录。生产环境预览 Cookie 强制 Secure，要求同源 HTTPS 入口；开发环境直接 TLS 请求也会设置 Secure。
 

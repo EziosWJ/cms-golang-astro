@@ -2,7 +2,7 @@ service:
   name: cms-api
 
 http:
-  address: ":8099"
+  address: ":8200"
   trusted_proxies: []
   read_header_timeout: 10s
   read_timeout: 5m

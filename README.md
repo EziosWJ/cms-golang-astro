@@ -48,7 +48,9 @@ task db:migrate:sqlite
 task dev
 ```
 
-API 默认监听 `http://localhost:8099`，Admin 为 `http://localhost:5173`，已发布站点由独立静态服务提供于 `http://localhost:8081`，Astro 模板开发服务器为 `http://localhost:4321`。SQLite 默认配置启用 API 内置发布执行器，因此 `task dev` 和 `task dev:cms` 都会处理发布任务；完整 `task dev` 还启动正式站点静态服务与 Astro 模板开发服务器。首次成功发布站点配置前，正式站点会返回 404。
+API 默认监听 `http://localhost:8200`，Admin 为 `http://localhost:5173`，已发布站点由独立静态服务提供于 `http://localhost:8201`，Astro 模板开发服务器为 `http://localhost:4321`。SQLite 默认配置启用 API 内置发布执行器，因此 `task dev` 和 `task dev:cms` 都会处理发布任务；完整 `task dev` 还启动正式站点静态服务与 Astro 模板开发服务器。首次成功发布站点配置前，正式站点会返回 404。
+
+Admin 开发环境使用 `cms-admin/.env.development` 中的 `VITE_API_BASE_URL=http://localhost:8200`；可先参考 `cms-admin/.env.example` 创建本地配置。生产环境保持该变量为空，使用同源相对路径。
 
 开发管理员由迁移种子创建，默认凭据为 `admin / admin123`。首次登录后应修改密码；生产部署前必须替换种子凭据和 JWT 密钥。
 

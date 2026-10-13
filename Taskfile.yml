@@ -231,7 +231,7 @@ tasks:
     desc: 独立提供已发布站点文件，不访问 CMS API 或数据库
     dir: cms-api
     cmds:
-      - go run ./cmd/staticweb --root '{{.ROOT_DIR}}/.runtime/publication' --address ':8081'
+      - go run ./cmd/staticweb --root '{{.ROOT_DIR}}/.runtime/publication' --address ':8201'
 
   publication:cleanup:
     desc: 列出过期产物（先停止执行器；使用 -- --apply 才会删除）
