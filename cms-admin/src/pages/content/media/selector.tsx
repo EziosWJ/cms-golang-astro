@@ -69,18 +69,18 @@ export function MediaSelector({ onSelect, onCover, coverMediaId, disabled = fals
 
   if (coverOnly) return <>
     <div className="media-cover-setting">
-      <div className="media-cover-preview">{cover ? <MarkdownMediaImage src={cover.stablePath} alt={cover.originalName} className="h-full w-full object-cover" /> : <span>未设置封面</span>}</div>
-      <div className="media-cover-setting__body"><div><strong>{cover?.originalName || "封面图片"}</strong><p>{cover ? "读者将在文章卡片和详情页看到它。" : "添加一张图片，让文章更容易被识别。"}</p></div><div className="media-cover-setting__actions"><Button size="sm" disabled={disabled} onClick={() => setLibraryOpen(true)}>{cover ? "更换封面" : "选择封面"}</Button>{cover && <Button size="sm" variant="ghost" disabled={disabled} onClick={() => { setCover(null); onCover?.(null); }}>移除</Button>}</div></div>
+      <div className="media-cover-preview">{cover ? <MarkdownMediaImage src={cover.stablePath} alt={cover.originalName} className="h-full w-full object-cover" /> : <span>未设置{label}</span>}</div>
+      <div className="media-cover-setting__body"><div><strong>{cover?.originalName || `${label}图片`}</strong><p>{cover ? (label === "头像" ? "用于网站作者区域展示。" : "读者将在文章卡片和详情页看到它。") : (label === "头像" ? "选择一张图片作为网站作者头像。" : "添加一张图片，让文章更容易被识别。")}</p></div><div className="media-cover-setting__actions"><Button size="sm" disabled={disabled} onClick={() => setLibraryOpen(true)}>{cover ? `更换${label}` : `选择${label}`}</Button>{cover && <Button size="sm" variant="ghost" disabled={disabled} onClick={() => { setCover(null); onCover?.(null); }}>移除</Button>}</div></div>
     </div>
     <Drawer open={libraryOpen} onOpenChange={setLibraryOpen} trapFocus restoreFocus lockScroll>
       <DrawerOverlay />
       <DrawerContent size="lg">
-        <DrawerHeader><DrawerTitle>选择封面图片</DrawerTitle><p className="text-body-secondary text-text-tertiary">从媒体库选择，或上传一张新的图片。</p></DrawerHeader>
+        <DrawerHeader><DrawerTitle>选择{label}图片</DrawerTitle><p className="text-body-secondary text-text-tertiary">从媒体库选择，或上传一张新的图片。</p></DrawerHeader>
         <DrawerBody className="media-library-drawer-body">
           <PermissionGuard permissionCode="content:media:edit"><MediaUpload onBusy={onUploading} disabled={disabled} onUploaded={handleUploaded} /></PermissionGuard>
           <Input aria-label="搜索媒体文件名" placeholder="搜索图片文件名" value={name} onChange={(event) => { setName(event.target.value); setPage(1); }} />
           {error && <p role="alert" className="text-error">{error}</p>}
-          <div className="media-library-grid">{imageRecords.map((file) => <div key={file.id} className={`media-library-item ${coverMediaId === file.id ? "is-selected" : ""}`}><button type="button" className="media-library-item__main" disabled={disabled} onClick={() => selectCover(file)}><MarkdownMediaImage src={file.stablePath} alt={file.originalName} className="media-library-item__image" /><span className="media-library-item__name">{file.originalName}</span>{coverMediaId === file.id && <span className="media-library-item__status">当前封面</span>}</button>{onSelect && <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onSelect(file)}>插入正文</Button>}</div>)}{!imageRecords.length && <p className="taxonomy-empty">暂无匹配图片</p>}</div>
+          <div className="media-library-grid">{imageRecords.map((file) => <div key={file.id} className={`media-library-item ${coverMediaId === file.id ? "is-selected" : ""}`}><button type="button" className="media-library-item__main" disabled={disabled} onClick={() => selectCover(file)}><MarkdownMediaImage src={file.stablePath} alt={file.originalName} className="media-library-item__image" /><span className="media-library-item__name">{file.originalName}</span>{coverMediaId === file.id && <span className="media-library-item__status">当前{label}</span>}</button>{onSelect && <Button size="sm" variant="ghost" disabled={disabled} onClick={() => onSelect(file)}>插入正文</Button>}</div>)}{!imageRecords.length && <p className="taxonomy-empty">暂无匹配图片</p>}</div>
           <Pagination page={page} pageSize={20} total={total} onPageChange={setPage} disabled={disabled} />
         </DrawerBody>
       </DrawerContent>

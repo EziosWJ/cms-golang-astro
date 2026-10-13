@@ -10,6 +10,7 @@ type PaginationProps = {
   pageSizeOptions?: number[];
   disabled?: boolean;
   className?: string;
+  compact?: boolean;
   onPageChange: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
 };
@@ -25,6 +26,7 @@ export function Pagination({
   pageSizeOptions = [10, 20, 50, 100],
   disabled = false,
   className,
+  compact = false,
   onPageChange,
   onPageSizeChange,
 }: PaginationProps) {
@@ -40,7 +42,7 @@ export function Pagination({
   return (
     <div
       className={cn(
-        "flex flex-col gap-space-3 border-t border-border px-card py-space-3 text-sm text-text-secondary md:flex-row md:items-center md:justify-between",
+        "flex min-w-0 flex-col gap-space-3 border-t border-border px-card py-space-3 text-sm text-text-secondary md:flex-row md:items-center md:justify-between",
         className,
       )}
     >
@@ -77,24 +79,26 @@ export function Pagination({
           </label>
         )}
 
-        <div className="flex items-center gap-space-2 tabular-nums">
+        <div className={cn("flex items-center gap-space-2 tabular-nums", compact && "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-1")}>
           <Button
             size="sm"
             variant="secondary"
             disabled={!canPrevious}
+            className={compact ? "w-full min-w-0 px-space-2" : undefined}
             onClick={() => onPageChange(currentPage - 1)}
             aria-label="上一页"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden />
             上一页
           </Button>
-          <span className="min-w-16 text-center">
+          <span className={cn("min-w-16 text-center", compact && "min-w-12")}>
             {currentPage} / {pageCount}
           </span>
           <Button
             size="sm"
             variant="secondary"
             disabled={!canNext}
+            className={compact ? "w-full min-w-0 px-space-2" : undefined}
             onClick={() => onPageChange(currentPage + 1)}
             aria-label="下一页"
           >

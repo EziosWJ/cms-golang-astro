@@ -271,20 +271,32 @@ func (r *Repository) Save(ctx context.Context, id int64, in SaveInput, meta audi
 		a.Slug = nullableSlug(in.Slug)
 		var revisionID *int64
 		if in.Mode == "manual" {
-			rev := revisionFrom(d, in.Slug)
-			if in.RevisionSource == "publish" {
-				rev.Source = "publish"
+			var latest Revision
+			latestErr := tx.Where("article_id = ?", id).Order("id DESC").Take(&latest).Error
+			switch {
+			case latestErr == nil && in.RevisionSource != "publish" && sameDraftContent(d, in.Slug, latest):
+				// A manual save is a checkpoint, not a content-change event. Reuse
+				// the existing immutable snapshot when the working draft is equal
+				// to it, so repeated saves do not create meaningless history rows.
+				revisionID = &latest.ID
+			case latestErr == nil || errors.Is(latestErr, gorm.ErrRecordNotFound):
+				rev := revisionFrom(d, in.Slug)
+				if in.RevisionSource == "publish" {
+					rev.Source = "publish"
+				}
+				if err := tx.Create(&rev).Error; err != nil {
+					return err
+				}
+				if err := taxonomy.SetReferences(tx, "revision", rev.ID, rev.Taxonomy); err != nil {
+					return err
+				}
+				if err := media.SetReferences(tx, "revision", rev.ID, files); err != nil {
+					return err
+				}
+				revisionID = &rev.ID
+			default:
+				return latestErr
 			}
-			if err := tx.Create(&rev).Error; err != nil {
-				return err
-			}
-			if err := taxonomy.SetReferences(tx, "revision", rev.ID, rev.Taxonomy); err != nil {
-				return err
-			}
-			if err := media.SetReferences(tx, "revision", rev.ID, files); err != nil {
-				return err
-			}
-			revisionID = &rev.ID
 		}
 		if err := audit.RecordOn(ctx, tx, audit.Event{Action: "UPDATE", Resource: "content.article", ResourceID: id, Metadata: meta}); err != nil {
 			return err
@@ -350,8 +362,11 @@ func (r *Repository) Revision(ctx context.Context, id, revisionID int64) (Revisi
 }
 
 func sameContent(detail Detail, rev Revision) bool {
-	d := detail.Draft
-	if detail.Slug != rev.Slug || d.Title != rev.Title || d.Markdown != rev.Markdown || d.Summary != rev.Summary {
+	return sameDraftContent(detail.Draft, detail.Slug, rev)
+}
+
+func sameDraftContent(d Draft, slug string, rev Revision) bool {
+	if slug != rev.Slug || d.Title != rev.Title || d.Markdown != rev.Markdown || d.Summary != rev.Summary {
 		return false
 	}
 	if (d.CoverMediaID == nil) != (rev.CoverMediaID == nil) || d.CoverMediaID != nil && *d.CoverMediaID != *rev.CoverMediaID {

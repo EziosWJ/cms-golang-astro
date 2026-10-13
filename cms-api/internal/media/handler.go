@@ -22,7 +22,9 @@ func (h *Handler) Register(r gin.IRouter) {
 func (h *Handler) list(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	size, _ := strconv.Atoi(c.DefaultQuery("pageSize", "20"))
-	if page < 1 || size < 1 || size > 100 || page > 1000000 {
+	kind := c.DefaultQuery("kind", "all")
+	sortBy := c.DefaultQuery("sort", "newest")
+	if page < 1 || size < 1 || size > 100 || page > 1000000 || !validKind(kind) || !validSort(sortBy) {
 		platform.WriteError(c, 400, 400, "分页参数无效", nil)
 		return
 	}
@@ -30,13 +32,18 @@ func (h *Handler) list(c *gin.Context) {
 	if name := c.Query("name"); name != "" {
 		query = query.Where("original_name LIKE ?", "%"+name+"%")
 	}
+	if kind == "image" {
+		query = query.Where("mime_type LIKE ?", "image/%")
+	} else if kind == "attachment" {
+		query = query.Where("mime_type NOT LIKE ?", "image/%")
+	}
 	var total int64
 	if err := query.Count(&total).Error; err != nil {
 		reply(c, err)
 		return
 	}
 	files := []File{}
-	if err := query.Order("id DESC").Offset((page - 1) * size).Limit(size).Find(&files).Error; err != nil {
+	if err := query.Order(mediaOrder(sortBy)).Offset((page - 1) * size).Limit(size).Find(&files).Error; err != nil {
 		reply(c, err)
 		return
 	}
@@ -49,6 +56,21 @@ func (h *Handler) list(c *gin.Context) {
 		}{f, Path(f), Image(f)})
 	}
 	platform.OK(c, map[string]any{"records": records, "total": total, "page": page, "pageSize": size})
+}
+
+func validKind(kind string) bool { return kind == "all" || kind == "image" || kind == "attachment" }
+
+func validSort(sortBy string) bool { return sortBy == "newest" || sortBy == "name" || sortBy == "size" }
+
+func mediaOrder(sortBy string) string {
+	switch sortBy {
+	case "name":
+		return "original_name ASC, id DESC"
+	case "size":
+		return "file_size DESC, id DESC"
+	default:
+		return "id DESC"
+	}
 }
 func (h *Handler) detail(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)

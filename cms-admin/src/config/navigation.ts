@@ -155,7 +155,7 @@ export function createUserMenuTitleMap(
 
 export const staticRouteTitleMap: Record<string, string> = {
   "/content/media": "媒体库",
-  "/content/site-config": "站点配置",
+  "/content/site-config": "站点设置",
   "/content/taxonomy": "分类与标签",
   "/content/articles": "文章管理",
   "/content/articles/new": "新建文章",

@@ -65,9 +65,22 @@ func authorWorkflowContract(t *testing.T, db *database.Database, directory strin
 		t.Fatalf("stale save: %v", err)
 	}
 	version = saved.Draft.Version
-	_, err = service.Save(ctx, meta, first.ID, content.SaveInput{DraftInput: content.DraftInput{Title: "手动留版", Markdown: "完整正文"}, ExpectedVersion: &version, Mode: "manual"})
+	manualInput := content.DraftInput{Title: "手动留版", Markdown: "完整正文"}
+	manual, err := service.Save(ctx, meta, first.ID, content.SaveInput{DraftInput: manualInput, ExpectedVersion: &version, Mode: "manual"})
 	if err != nil {
 		t.Fatal(err)
+	}
+	if manual.RevisionID == nil {
+		t.Fatal("manual save did not create a revision")
+	}
+	manualRevisionID := *manual.RevisionID
+	version = manual.Draft.Version
+	repeated, err := service.Save(ctx, meta, first.ID, content.SaveInput{DraftInput: manualInput, ExpectedVersion: &version, Mode: "manual"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if repeated.RevisionID == nil || *repeated.RevisionID != manualRevisionID {
+		t.Fatalf("repeated manual save did not reuse revision: first=%d repeated=%v", manualRevisionID, repeated.RevisionID)
 	}
 	history, err = service.Revisions(ctx, 1, first.ID, content.Query{Page: 1, PageSize: 20})
 	if err != nil || history.Total != 1 || history.Records[0].Source != "manual" {

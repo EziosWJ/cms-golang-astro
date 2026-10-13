@@ -105,6 +105,11 @@ func SetReferences(tx *gorm.DB, owner string, id int64, terms []Snapshot) error 
 
 type Handler struct{ db *gorm.DB }
 
+type listTerm struct {
+	Term
+	ReferenceCount int64 `json:"referenceCount"`
+}
+
 func NewHandler(db *gorm.DB) *Handler { return &Handler{db} }
 func (h *Handler) Register(r gin.IRouter) {
 	for _, kind := range []string{"category", "tag"} {
@@ -121,9 +126,41 @@ func (h *Handler) Register(r gin.IRouter) {
 }
 func (h *Handler) list(kind string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		out := []Term{}
-		err := h.db.WithContext(c.Request.Context()).Where("kind=?", kind).Order("name ASC, id ASC").Find(&out).Error
-		reply(c, out, err)
+		terms := []Term{}
+		if err := h.db.WithContext(c.Request.Context()).Where("kind=?", kind).Order("name ASC, id ASC").Find(&terms).Error; err != nil {
+			reply(c, nil, err)
+			return
+		}
+
+		counts := map[int64]int64{}
+		if len(terms) > 0 {
+			ids := make([]int64, 0, len(terms))
+			for _, term := range terms {
+				ids = append(ids, term.ID)
+			}
+
+			var rows []struct {
+				TermID int64 `gorm:"column:term_id"`
+				Count  int64 `gorm:"column:reference_count"`
+			}
+			if err := h.db.WithContext(c.Request.Context()).Model(&Reference{}).
+				Select("term_id, COUNT(*) AS reference_count").
+				Where("term_id IN ?", ids).
+				Group("term_id").
+				Scan(&rows).Error; err != nil {
+				reply(c, nil, err)
+				return
+			}
+			for _, row := range rows {
+				counts[row.TermID] = row.Count
+			}
+		}
+
+		out := make([]listTerm, 0, len(terms))
+		for _, term := range terms {
+			out = append(out, listTerm{Term: term, ReferenceCount: counts[term.ID]})
+		}
+		reply(c, out, nil)
 	}
 }
 func valid(name, path string) bool {
