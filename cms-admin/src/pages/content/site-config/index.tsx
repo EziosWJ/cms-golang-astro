@@ -296,6 +296,14 @@ export function SiteConfigPage() {
       !conflict &&
       !request.current,
   );
+  const canSave = Boolean(
+    values &&
+      working &&
+      !saving &&
+      !conflict &&
+      !request.current &&
+      (isDirty || !hasSavedRevision),
+  );
   const changedCount = useMemo(() => {
     if (!working?.published) return 0;
     return configFields.filter(
@@ -634,7 +642,7 @@ export function SiteConfigPage() {
               <Button
                 variant="primary"
                 type="submit"
-                disabled={saving || conflict || !!request.current || !isDirty}
+                disabled={!canSave}
               >
                 {saving ? "保存中…" : "保存修改"}
               </Button>
