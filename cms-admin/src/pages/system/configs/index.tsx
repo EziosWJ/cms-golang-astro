@@ -22,6 +22,7 @@ import {
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { DataTableCard } from "@/components/common/data-table-card";
 import { DataTable } from "@/components/common/data-table";
+import { TableActions } from "@/components/common/table-actions";
 import { EmptyState } from "@/components/common/empty-state";
 import { Field } from "@/components/common/field";
 import { FormDialog } from "@/components/common/form-dialog";
@@ -580,7 +581,7 @@ export function SystemConfigsPage() {
         const nextStatus = getConfigStatus(record) === 1 ? 0 : 1;
 
         return (
-          <div className="inline-flex flex-wrap items-center justify-center gap-1">
+          <TableActions>
             <Button
               size="sm"
               variant="ghost"
@@ -622,7 +623,7 @@ export function SystemConfigsPage() {
               <Trash2 className="h-4 w-4" aria-hidden />
               删除
             </Button>
-          </div>
+          </TableActions>
         );
       },
     },

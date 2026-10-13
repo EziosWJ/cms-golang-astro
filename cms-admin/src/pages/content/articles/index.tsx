@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Plus, RefreshCw } from "lucide-react";
+import { History, Plus, RefreshCw } from "lucide-react";
 import { getArticlePage } from "@/api/content";
 import { PermissionGuard } from "@/components/auth/permission-guard";
 import { PageHeader } from "@/components/common/page-header";
@@ -7,6 +7,7 @@ import { SearchFilterBar } from "@/components/common/search-filter-bar";
 import { Field } from "@/components/common/field";
 import { DataTableCard } from "@/components/common/data-table-card";
 import { DataTable } from "@/components/common/data-table";
+import { TableActions } from "@/components/common/table-actions";
 import { TableToolbar } from "@/components/common/table-toolbar";
 import { Pagination } from "@/components/common/pagination";
 import { EmptyState } from "@/components/common/empty-state";
@@ -24,6 +25,7 @@ function ArticleList() {
  const applied={title:params.get("title") ?? "",lifecycle:params.get("lifecycle")==="archived" ? "archived" : "active",status:["draft","published","changed"].includes(params.get("status") ?? "") ? params.get("status")! : ""};
  const returnPath=location.pathname+location.search;
  const editorPath=(id:string | number) => `/content/articles/${id}?list=${encodeURIComponent(returnPath)}`;
+  const revisionsPath=(id:string | number) => `/content/articles/${id}/revisions?list=${encodeURIComponent(returnPath)}`;
   const navigate = useNavigate();
   const list = useListPage({
     fetch: getArticlePage,
@@ -38,7 +40,7 @@ function ArticleList() {
     { title: "分类", key: "taxonomy", render: (_, record) => record.taxonomy?.filter((term) => term.kind === "category").map((term) => term.name).join("、") || "—" },
 { title: "状态", key: "status", render: (_, record) => record.lifecycle === "archived" ? "已归档" : `${record.published ? "已上线" : "未上线"}${record.published && record.unpublishedChanges ? " · 有未发布修改" : ""}` },
     { title: "保存时间", key: "savedAt", render: (_, record) => new Date(record.savedAt).toLocaleString("zh-CN") },
-    { title: "操作", key: "actions", width: 100, render: (_, record) => <Button variant="ghost" size="sm" onClick={() => navigate(editorPath(record.id))}>编辑</Button> },
+    { title: "操作", key: "actions", nowrap: true, align: "center", width: 180, render: (_, record) => <TableActions><Button variant="ghost" size="sm" onClick={() => navigate(editorPath(record.id))}>编辑</Button><Button variant="ghost" size="sm" onClick={() => navigate(revisionsPath(record.id))}><History className="h-4 w-4" aria-hidden />历史版本</Button></TableActions> },
   ];
   return (
     <PermissionGuard permissionCode={ARTICLE_EDIT_PERMISSION} fallback={<EmptyState title="无访问权限" description="请联系管理员授予内容编辑权限。" />}>

@@ -9,6 +9,7 @@ import { DataTable } from "@/components/common/data-table";
 import { TableToolbar } from "@/components/common/table-toolbar";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
 import { EmptyState } from "@/components/common/empty-state";
+import { TableActions } from "@/components/common/table-actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getErrorMessage } from "@/lib/api-error";
@@ -25,7 +26,7 @@ export function TaxonomyPage() {
   const reload = useCallback(async () => { setLoading(true); try { setRecords(await getTaxonomy(kind)); setError(""); } catch (err) { setError(getErrorMessage(err, "加载失败")); } finally { setLoading(false); } }, [kind]);
   useEffect(() => { void reload(); }, [reload]);
   async function submit() { setLoading(true); try { await writeTaxonomy(kind, { name, url, expectedVersion: editing?.version }, editing?.id); setEditing(null); setName(""); setURL(""); await reload(); } catch (err) { setError(getErrorMessage(err, "保存失败")); } finally { setLoading(false); } }
-  const columns: DataTableColumn<TaxonomyTerm>[] = [{ title: "名称", dataIndex: "name" }, { title: "URL", dataIndex: "url" }, { title: "身份", key: "locked", render: (_, row) => row.lockedAt ? "已发布，已锁定" : "尚未发布" }, { title: "操作", key: "actions", render: (_, row) => <><Button variant="ghost" disabled={!!row.lockedAt || loading} onClick={() => { setEditing(row); setName(row.name); setURL(row.url); }}>编辑</Button><Button variant="ghost" disabled={!!row.lockedAt || loading} onClick={() => setRemoving(row)}>删除</Button></> }];
+  const columns: DataTableColumn<TaxonomyTerm>[] = [{ title: "名称", dataIndex: "name" }, { title: "URL", dataIndex: "url" }, { title: "身份", key: "locked", render: (_, row) => row.lockedAt ? "已发布，已锁定" : "尚未发布" }, { title: "操作", key: "actions", nowrap: true, align: "center", render: (_, row) => <TableActions><Button variant="ghost" disabled={!!row.lockedAt || loading} onClick={() => { setEditing(row); setName(row.name); setURL(row.url); }}>编辑</Button><Button variant="ghost" disabled={!!row.lockedAt || loading} onClick={() => setRemoving(row)}>删除</Button></TableActions> }];
   return <PermissionGuard permissionCode="content:taxonomy:edit" fallback={<EmptyState title="无访问权限" />}>
     <PageHeader title="分类与标签" description="平面组织内容，首次发布后名称与 URL 保持稳定。" />
     <div className="mb-space-4 flex gap-space-2">{(["category", "tag"] as const).map((value) => <Button key={value} variant={kind === value ? "primary" : "secondary"} onClick={() => { setKind(value); setEditing(null); setName(""); setURL(""); }}>{value === "category" ? "分类" : "标签"}</Button>)}</div>

@@ -1,5 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { StatusTag } from "@/components/common/status-tag";
+import { TableActions } from "@/components/common/table-actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDateOnly } from "@/lib/datetime";
@@ -139,7 +140,7 @@ export function createDictTypeColumns({
       align: "center",
       width: 300,
       render: (_, record) => (
-        <div className="inline-flex flex-wrap items-center justify-center gap-1">
+        <TableActions>
           <Button size="sm" variant="ghost" onClick={() => onSelect(record)}>
             查看项
           </Button>
@@ -171,7 +172,7 @@ export function createDictTypeColumns({
             <Trash2 className="h-4 w-4" aria-hidden />
             删除
           </Button>
-        </div>
+        </TableActions>
       ),
     },
   ];

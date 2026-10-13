@@ -3,18 +3,18 @@ import { recoveryKey, temporaryIdentity, readRecovery, type RecoveryCopy } from 
 import { DraftComparison } from "./comparison";
 import { useDeferredValue, useEffect, useRef, useState, type ClipboardEvent, type FormEvent } from "react";
 import { useBlocker, useLocation, useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, CircleHelp, Maximize2, Minimize2, MoreHorizontal, PanelRight, Save, Send, Settings2 } from "lucide-react";
 import MDEditor from "@uiw/react-md-editor";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { createArticle, getArticle, saveArticleDraft, restoreArticleRevision, setArticleLifecycle } from "@/api/content";
+import { createArticle, getArticle, saveArticleDraft, setArticleLifecycle } from "@/api/content";
 import { PermissionGuard } from "@/components/auth/permission-guard";
 import { PageHeader } from "@/components/common/page-header";
-import { FormSection } from "@/components/common/form-section";
 import { Field } from "@/components/common/field";
 import { ContentCard } from "@/components/common/content-card";
 import { EmptyState } from "@/components/common/empty-state";
 import { ConfirmDialog } from "@/components/common/confirm-dialog";
-import { Dialog, DialogOverlay, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Drawer, DrawerBody, DrawerContent, DrawerFooter, DrawerHeader, DrawerOverlay, DrawerTitle } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,7 +28,6 @@ import { MarkdownMediaImage, MarkdownMediaLink } from "../media/preview";
 import { TaxonomyPicker } from "../taxonomy/picker";
 import { getPublications, submitPublication, type PublishKind, type PublishInput } from "@/api/publishing";
 import { PublicationTask } from "../publications/task";
-import { RevisionHistory } from "./revisions";
 import { ARTICLE_EDIT_PERMISSION, type ArticleDetail, type ArticleDraftInput } from "@/types/content";
 
 type FormValues = Omit<ArticleDraftInput, "displayDate"> & { displayDate: string };
@@ -56,8 +55,15 @@ function ArticleEditor({ id }: { id?: string }) {
  const [recovery, setRecovery] = useState<RecoveryCopy | null>(null);
  const [storageError, setStorageError] = useState("");
  const [settingsOpen,setSettingsOpen]=useState(false);
+ const [focusMode, setFocusMode] = useState(false);
  const [narrow,setNarrow]=useState(() => window.matchMedia("(max-width: 767px)").matches);
  useEffect(() => { const query=window.matchMedia("(max-width: 767px)"); const changed=() => setNarrow(query.matches); query.addEventListener("change",changed); return () => query.removeEventListener("change",changed); },[]);
+ useEffect(() => {
+   if (!focusMode) return;
+   const handleKeyDown = (event: KeyboardEvent) => { if (event.key === "Escape") setFocusMode(false); };
+   document.addEventListener("keydown", handleKeyDown);
+   return () => document.removeEventListener("keydown", handleKeyDown);
+ }, [focusMode]);
  const [editorMode, setEditorMode] = useState<"edit" | "preview" | "split">("edit");
  const [composing, setComposing] = useState(false);
  const recoveryPending = useRef(false);
@@ -248,25 +254,6 @@ if (isNew) { getEditorContext(controller.signal).then((context)=> { if (!control
   }, [isNew, loading, composing, recovery, confirmation, saving, uploadingImage, autosaving, conflict, dirty, values, saveError, detail]);
 
   async function save(event: FormEvent) { event.preventDefault(); await persist("manual"); }
-  async function restore(revisionID: number) {
-    if (submitting.current || conflictRef.current) return;
-    submitting.current = true; setSaving(true); setSaveError("");
-    const operation = async () => {
-      if (conflictRef.current) return;
-      const result = await restoreArticleRevision(activeID.current!, revisionID, detailRef.current!.draft.version);
-      detailRef.current = result; setDetail(result);
-      const restored = formFrom(result,timezone); setValues(restored); setBaseline(restored);
-      setSavedMessage("已恢复到工作稿，尚未发布");
-    };
-    const request = queue.current.then(operation); queue.current = request.catch(() => undefined);
-    try { await request; }
-    catch (error) {
-      if (error instanceof ApiError && error.status === 409 && typeof error.data === "object" && error.data !== null && "reason" in error.data && error.data.reason === "version_conflict") { conflictRef.current = true; setConflict(true); }
-      setSaveError(getErrorMessage(error, "恢复失败，本地内容已保留"));
-    } finally { submitting.current = false; setSaving(false); }
-  }
-
-
   async function publish(kind: PublishKind) {
     if (isNew || submitting.current || conflictRef.current || imageUploadPending.current || uploadingMedia) return;
     if (!hasConfig) { setConfirmation(null); setPublishError("首次发布前，请先补齐并发布站点与作者资料。配置发布成功后返回本文，再确认发布。"); return; }
@@ -307,58 +294,95 @@ if (isNew) { getEditorContext(controller.signal).then((context)=> { if (!control
     detailRef.current = latest; conflictRef.current = false; setDetail(latest); setBaseline(formFrom(latest,timezone)); setConflict(false); setLatest(null); setSaveError("");
   }
 
-  const settingsContent = (<div className="mt-space-4 space-y-space-4">          <FormSection columns={1} title="文章设置">
- {detail && <Button onClick={() => { setSettingsOpen(false); window.requestAnimationFrame(() => document.getElementById("article-history")?.scrollIntoView({block:"start"})); }}>历史版本</Button>}
-
-            <Field label="文章地址" htmlFor="article-slug" help="中文和数字可用；首次成功发布后固定。"><Input id="article-slug" value={values.slug} maxLength={200} disabled={readOnly || !!detail?.slugLockedAt} onChange={(event) => { setSlugEdited(true); change("slug", event.target.value); }} /></Field>
-            {publicUrl && values.slug && <p className="break-all text-sm text-text-secondary">公开地址：{publicUrl.replace(/\/$/, "")}/archives/{encodeURIComponent(values.slug)}/</p>}
-            <Field label="展示日期" htmlFor="article-date" help="可留空，发布时确定默认日期。"><Input id="article-date" type="datetime-local" step="1" value={values.displayDate} disabled={readOnly} onChange={(event) => change("displayDate", event.target.value)} /></Field>
-            <div className="col-span-1"><Field label="摘要" htmlFor="article-summary"><Textarea id="article-summary" value={values.summary} maxLength={5000} disabled={readOnly} onChange={(event) => change("summary", event.target.value)} /></Field></div>
-          </FormSection>
+  const settingsContent = (
+    <div className="article-settings-panels">
+      <details className="article-settings-panel" open>
+        <summary>
+          <span>摘要</span>
+          <span className="article-settings-panel__hint">可选</span>
+        </summary>
+        <div className="article-settings-panel__body">
+          <Field label="摘要" htmlFor="article-summary"><Textarea id="article-summary" value={values.summary} maxLength={5000} disabled={readOnly} onChange={(event) => change("summary", event.target.value)} /></Field>
+        </div>
+      </details>
+      <details className="article-settings-panel" open>
+        <summary>
+          <span>分类与标签</span>
+          <span className="article-settings-panel__hint">可选</span>
+        </summary>
+        <div className="article-settings-panel__body article-settings-panel__body--flush">
           <TaxonomyPicker categoryIds={values.categoryIds} tagIds={values.tagIds} disabled={readOnly} onChange={(kind, ids) => change(kind === "category" ? "categoryIds" : "tagIds", ids)} />
-          <ContentCard title="媒体与封面"><MediaSelector onUploading={setUploadingMedia} disabled={readOnly} onSelect={(file) => { const textarea=document.getElementById("article-markdown") as HTMLTextAreaElement | null; const start=textarea?.selectionStart ?? values.markdown.length; const end=textarea?.selectionEnd ?? start; const text=`\n${file.image ? "!" : ""}[${file.originalName.replace(/[[\]\\\r\n]/g, "")}](${file.stablePath})\n`; change("markdown", valuesRef.current.markdown.slice(0,start)+text+valuesRef.current.markdown.slice(end)); }} onCover={(file) => change("coverMediaId", file?.id ?? null)} coverMediaId={values.coverMediaId} /></ContentCard>
-</div>);
+        </div>
+      </details>
+      <details className="article-settings-panel">
+        <summary>
+          <span>封面图片</span>
+          <span className="article-settings-panel__hint">可选</span>
+        </summary>
+        <div className="article-settings-panel__body article-settings-panel__body--flush">
+          <MediaSelector coverOnly onUploading={setUploadingMedia} disabled={readOnly} onSelect={(file) => { const textarea=document.getElementById("article-markdown") as HTMLTextAreaElement | null; const start=textarea?.selectionStart ?? values.markdown.length; const end=textarea?.selectionEnd ?? start; const text=`\n${file.image ? "!" : ""}[${file.originalName.replace(/[[\]\\\r\n]/g, "")}](${file.stablePath})\n`; change("markdown", valuesRef.current.markdown.slice(0,start)+text+valuesRef.current.markdown.slice(end)); }} onCover={(file) => change("coverMediaId", file?.id ?? null)} coverMediaId={values.coverMediaId} />
+        </div>
+      </details>
+      <details className="article-settings-panel">
+        <summary>
+          <span>发布设置</span>
+          <span className="article-settings-panel__hint">URL、日期</span>
+        </summary>
+        <div className="article-settings-panel__body">
+          <div className="space-y-1.5">
+            <label htmlFor="article-slug" className="block text-form-label font-medium text-text-primary">公开链接路径<span className="article-field-tooltip" tabIndex={0} aria-describedby="article-slug-help"><CircleHelp className="h-3.5 w-3.5" aria-hidden /><span id="article-slug-help" role="tooltip">用于生成公开文章链接，例如 /archives/hello-world/；首次成功发布后固定。</span></span></label>
+            <Input id="article-slug" value={values.slug} maxLength={200} placeholder="例如 hello-world" disabled={readOnly || !!detail?.slugLockedAt} onChange={(event) => { setSlugEdited(true); change("slug", event.target.value); }} />
+          </div>
+          {publicUrl && values.slug && <p className="break-all text-helper text-text-tertiary">公开地址：{publicUrl.replace(/\/$/, "")}/archives/{encodeURIComponent(values.slug)}/</p>}
+          <Field label="展示日期" htmlFor="article-date" help="可留空，发布时确定默认日期。"><Input id="article-date" type="datetime-local" step="1" value={values.displayDate} disabled={readOnly} onChange={(event) => change("displayDate", event.target.value)} /></Field>
+        </div>
+      </details>
+    </div>
+  );
   return (
     <PermissionGuard permissionCode={ARTICLE_EDIT_PERMISSION} fallback={<EmptyState title="无访问权限" description="请联系管理员授予内容编辑权限。" />}>
-      <PageHeader title={isNew ? "新建文章" : "编辑文章"} description="保存工作稿不会改变网站。发布更新才会对读者生效。" actions={<Button onClick={() => navigate(listPath)}>返回列表</Button>} />
-      {detail && <p className="mb-space-3 text-sm text-text-secondary" role="status">{detail.lifecycle === "archived" ? "已归档" : detail.published ? `已上线${detail.unpublishedChanges || dirty ? " · 仍有未发布修改" : " · 工作稿与线上内容一致"}` : "草稿 · 尚未上线"}</p>}
-      {!hasConfig && !loading && <ContentCard title="首次设置" description="可以先写文章。首次发布前，需要单独发布站点名称、公开地址和作者资料。"><Button onClick={() => navigate(`/content/site-config?returnTo=${encodeURIComponent(id ? `/content/articles/${id}` : "/content/articles/new")}`)}>设置站点与作者</Button></ContentCard>}
+      <div className={`article-editor ${focusMode ? "article-editor--focus" : ""}`}>
+      <PageHeader title={isNew ? "新建文章" : "编辑文章"} description="保存工作稿不会改变网站，发布后才会对读者生效。" actions={<div className="article-editor-actions">
+        <span className="article-editor-save-status" role="status"><span className={`article-editor-save-dot ${saving || autosaving ? "is-saving" : dirty ? "is-dirty" : "is-saved"}`} aria-hidden="true" />{conflict ? "保存冲突" : saveError ? "保存失败" : saving || autosaving ? "正在保存" : loading ? "加载中…" : dirty ? "尚未保存" : savedMessage || (detail ? "已保存" : "尚未保存")}</span>
+        <Button variant="secondary" size="sm" form="article-editor-form" type="submit" disabled={readOnly || conflict || !!publishRequest.current}><Save className="h-4 w-4" aria-hidden />{saving ? "保存中…" : "保存草稿"}</Button>
+        {!isNew && detail?.lifecycle === "active" && <PermissionGuard permissionCode="content:publish"><Button variant="primary" size="sm" disabled={readOnly || conflict || !!publishRequest.current} onClick={() => setConfirmation("article")}><Send className="h-4 w-4" aria-hidden />{detail.published ? "发布更新" : "发布"}</Button></PermissionGuard>}
+        {!isNew && detail?.lifecycle === "active" && <details className="article-editor-more-actions"><summary aria-label="更多文章操作"><MoreHorizontal className="h-4 w-4" aria-hidden /></summary><div className="article-editor-more-actions__menu"><Button size="sm" disabled={readOnly || conflict || !!publishRequest.current} onClick={() => void publish("preview")}>网站效果预览</Button>{detail.published && <PermissionGuard permissionCode="content:publish"><Button size="sm" disabled={readOnly || conflict || !!publishRequest.current} onClick={() => setConfirmation("unpublish")}>下线文章</Button></PermissionGuard>}{!detail.published && <Button size="sm" disabled={readOnly || conflict || dirty || !!publishRequest.current} onClick={() => setConfirmation("archive")}>归档</Button>}</div></details>}
+        {detail?.lifecycle === "archived" && <Button size="sm" disabled={saving || conflict} onClick={() => setConfirmation("activate")}>恢复编辑</Button>}
+        <Button size="sm" onClick={() => navigate(listPath)}><ArrowLeft className="h-4 w-4" aria-hidden />返回列表</Button>
+      </div>} />
+      {detail && <p className="article-editor-lifecycle" role="status">{detail.lifecycle === "archived" ? "已归档" : detail.published ? `已上线${detail.unpublishedChanges || dirty ? " · 仍有未发布修改" : " · 工作稿与线上内容一致"}` : "草稿 · 尚未上线"}</p>}
+      {!hasConfig && !loading && <div className="article-setup-alert" role="status"><div><strong>先把站点准备好</strong><span>首次发布前需要站点名称、公开地址和作者资料；现在可以先开始写作。</span></div><Button size="sm" onClick={() => navigate(`/content/site-config?returnTo=${encodeURIComponent(id ? `/content/articles/${id}` : "/content/articles/new")}`)}>完成站点设置</Button></div>}
       {storageError && <p role="alert" className="mb-space-4 text-warning">{storageError}</p>}
  {recovery && <ContentCard title="发现浏览器临时恢复副本" description="仅此浏览器可用。恢复前请比较输入；数据库仍是内容主数据源。"><DraftComparison local={recovery.values} remote={baseline} /><Button onClick={recoverCopy}>恢复本地输入</Button><Button onClick={() => { if (window.confirm("清除这份未确认保存的浏览器副本？")) clearCopy(); }}>放弃并清除副本</Button></ContentCard>}
  {dirty && !recovery && <p className="mb-space-3 text-sm text-text-secondary">{storageError ? "当前输入尚未保存到服务器，浏览器保护受限。" : "临时副本仅保留在当前浏览器。"}<Button size="sm" onClick={() => { if (window.confirm("清除本地恢复副本？当前编辑输入仍保留，后续修改会重新保护。")) clearCopy(); }}>清除副本</Button></p>}
       {loadError ? <EmptyState title="加载失败" description={loadError} /> : (
-        <form className="max-w-[1200px] space-y-space-6" onSubmit={(event) => void save(event)}>
-          <div className="grid min-w-0 items-start gap-space-4 xl:grid-cols-[minmax(0,1fr)_320px]"><section className="min-w-0 space-y-space-4">
-          <Field label="标题" htmlFor="article-title" help="可以保存尚未完成的标题。"><Input id="article-title" onCompositionStart={() => setComposing(true)} onCompositionEnd={() => setComposing(false)} value={values.title} maxLength={500} disabled={readOnly} onChange={(event) => change("title", event.target.value)} /></Field>
-          <ContentCard title="Markdown 正文" description="源码编辑与即时预览；支持表格、列表及围栏代码。截图后在输入框按 Ctrl+V（Mac 使用 ⌘V）上传图片。">
+        <form id="article-editor-form" className="article-editor-form" onSubmit={(event) => void save(event)}>
+          <div className="article-editor-layout">
+          <section className="article-writing-column">
+          <div className="article-title-field"><Input id="article-title" aria-label="文章标题" placeholder="输入文章标题" onCompositionStart={() => setComposing(true)} onCompositionEnd={() => setComposing(false)} value={values.title} maxLength={500} disabled={readOnly} onChange={(event) => change("title", event.target.value)} /><p>标题可以先留空，随时回来继续写。</p></div>
+          <section className="article-writing-surface" aria-label="文章正文编辑区">
+            <div className="article-writing-surface__header"><div><h2>正文</h2><p>Markdown · 支持表格、列表、代码块与粘贴图片</p></div><Button size="icon" type="button" title={focusMode ? "退出全屏编辑" : "进入全屏编辑"} aria-label={focusMode ? "退出全屏编辑" : "进入全屏编辑"} onClick={() => setFocusMode((value) => !value)}>{focusMode ? <Minimize2 className="h-4 w-4" aria-hidden /> : <Maximize2 className="h-4 w-4" aria-hidden />}</Button></div>
             {uploadingImage && <p role="status" className="mb-space-3 text-sm text-text-secondary">正在上传图片，请稍候…</p>}
             {imageError && <p role="alert" className="mb-space-3 text-sm text-error">{imageError}</p>}
-            <div className="mb-space-3 flex flex-wrap gap-space-2">{([ ["edit","源码"],["preview","正文预览"],["split","分屏"] ] as const).map(([mode,label]) => <Button key={mode} size="sm" aria-pressed={editorMode===mode} onClick={() => setEditorMode(mode)}>{label}</Button>)}</div>
+            <div className="article-editor-mode-switcher">{([ ["edit","源码"],["preview","正文预览"],["split","分屏"] ] as const).map(([mode,label]) => <Button key={mode} size="sm" aria-pressed={editorMode===mode} onClick={() => setEditorMode(mode)}>{label}</Button>)}</div>
  <div className={`grid min-w-0 gap-space-4 ${editorMode === "split" ? "lg:grid-cols-2" : ""}`}>
-              <div className={editorMode === "preview" ? "hidden" : "min-w-0"} data-color-mode="light"><MDEditor value={values.markdown} onChange={(value) => { if (!readOnly) change("markdown", value ?? ""); }} height={480} preview="edit" extraCommands={[]} defaultTabEnable textareaProps={{ id: "article-markdown", "aria-label": "Markdown 正文", disabled: readOnly, spellCheck: false, onCompositionStart: () => setComposing(true), onCompositionEnd: () => setComposing(false), onPaste: (event) => { void pasteImages(event); } }} /></div>
+              <div className={editorMode === "preview" ? "hidden" : "min-w-0"} data-color-mode="light"><MDEditor value={values.markdown} onChange={(value) => { if (!readOnly) change("markdown", value ?? ""); }} height={focusMode ? "calc(100dvh - 250px)" : 620} preview="edit" extraCommands={[]} defaultTabEnable textareaProps={{ id: "article-markdown", "aria-label": "Markdown 正文", disabled: readOnly, spellCheck: false, onCompositionStart: () => setComposing(true), onCompositionEnd: () => setComposing(false), onPaste: (event) => { void pasteImages(event); } }} /></div>
               <section hidden={editorMode === "edit"} className="article-markdown-preview min-w-0 overflow-auto rounded-control border border-border p-space-4" aria-label="正文即时预览">
                 <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ img: MarkdownMediaImage, a: MarkdownMediaLink }}>{preview}</ReactMarkdown>
               </section>
             </div>
-          </ContentCard>
+          </section>
           </section><aside className="min-w-0">
-          {narrow ? <><Button onClick={() => setSettingsOpen(true)}>文章设置、插图与封面</Button><Dialog open={settingsOpen} onOpenChange={setSettingsOpen} trapFocus restoreFocus lockScroll><DialogOverlay /><DialogContent className="max-h-[85dvh] overflow-y-auto"><DialogHeader><DialogTitle>文章设置、插图与封面</DialogTitle></DialogHeader>{settingsContent}<Button onClick={() => setSettingsOpen(false)}>完成设置</Button></DialogContent></Dialog></> : <details className="rounded-admin border border-border bg-surface p-space-4"><summary className="cursor-pointer font-medium">文章设置、插图与封面</summary>{settingsContent}</details>}
+          {narrow ? <><Button className="article-settings-trigger" onClick={() => setSettingsOpen(true)}><Settings2 className="h-4 w-4" aria-hidden />文章属性</Button><Drawer open={settingsOpen} onOpenChange={setSettingsOpen} trapFocus restoreFocus lockScroll><DrawerOverlay /><DrawerContent size="md"><DrawerHeader><DrawerTitle>文章属性</DrawerTitle><p className="text-body-secondary text-text-tertiary">管理 URL、摘要、分类和封面。</p></DrawerHeader><DrawerBody>{settingsContent}</DrawerBody><DrawerFooter><Button onClick={() => setSettingsOpen(false)}>完成设置</Button></DrawerFooter></DrawerContent></Drawer></> : <div className="article-settings-rail"><div className="article-settings-rail__heading"><div><span className="article-settings-rail__eyebrow">文章属性</span><h2>发布前配置</h2></div><PanelRight className="h-4 w-4 text-text-tertiary" aria-hidden /></div>{settingsContent}</div>}
           </aside></div>
           {conflict && <ContentCard title="工作稿保存冲突" description="本地内容已保留。读取最新版本后，确认是否用本地内容替换它。"><Button disabled={latestLoading} onClick={() => void loadLatest()}>{latestLoading ? "读取中…" : "读取最新版本"}</Button>{latest && <div className="mt-space-4 space-y-space-3"><p>服务器版本 {latest.draft.version} · {latest.draft.title || "未命名文章"}</p><DraftComparison local={values} remote={formFrom(latest,timezone)} /><Button onClick={() => { if (!latest || !window.confirm("放弃本地修改并采用服务器全部内容？")) return; const next=formFrom(latest,timezone); setValues(next); setBaseline(next); detailRef.current=latest; setDetail(latest); conflictRef.current=false; setConflict(false); setLatest(null); setSaveError(""); }}>采用服务器内容</Button><Button onClick={useLatestVersion}>保留本地内容，以此版本继续编辑</Button></div>}</ContentCard>}
-          <div className="sticky bottom-0 z-10 flex flex-wrap items-center gap-space-3 rounded-control border border-border bg-surface p-space-3">
-            <Button variant="primary" type="submit" disabled={readOnly || conflict || !!publishRequest.current}>{saving ? "保存中…" : "保存版本"}</Button>
-            {!isNew && detail?.lifecycle === "active" && <><Button disabled={readOnly || conflict || !!publishRequest.current} onClick={() => void publish("preview")}>网站效果预览</Button><PermissionGuard permissionCode="content:publish"><Button disabled={readOnly || conflict || !!publishRequest.current} onClick={() => setConfirmation("article")}>{detail.published ? "发布更新" : "发布文章"}</Button>{detail.published && <details><summary className="cursor-pointer text-sm">更多操作</summary><Button disabled={readOnly || conflict || !!publishRequest.current} onClick={() => setConfirmation("unpublish")}>下线文章</Button></details>}</PermissionGuard>{!detail.published && <details><summary className="cursor-pointer text-sm">更多操作</summary><Button disabled={readOnly || conflict || dirty || !!publishRequest.current} onClick={() => setConfirmation("archive")}>归档</Button></details>}</>}
-            {!isNew && detail?.lifecycle === "archived" && <Button disabled={saving || conflict} onClick={() => setConfirmation("activate")}>恢复编辑</Button>}
-            <span className="text-sm text-text-secondary" role="status">{conflict ? "保存冲突" : saveError ? "保存失败" : saving || autosaving ? "正在保存" : loading ? "加载中…" : dirty ? "尚未保存" : savedMessage || (detail ? "已保存" : "尚未保存")}</span>
-            {saveError && !conflict && <Button onClick={() => void persist("manual")}>重试保存</Button>}
-            {saveError && <p className="w-full text-sm text-error" role="alert">{saveError}</p>}
-          </div>
+          {saveError && <div className="article-editor-error" role="alert"><span>{saveError}</span>{!conflict && <Button size="sm" onClick={() => void persist("manual")}>重试保存</Button>}</div>}
           {publishError && <ContentCard title="提交失败"><p role="alert" className="text-error">{publishError}</p>{publishRequest.current && <Button disabled={saving} onClick={() => void publish(publishRequest.current!.input.kind)}>重试同一请求</Button>}</ContentCard>}
           {previewSnapshot && previewSnapshot !== JSON.stringify(values) && <p role="status">文章已有新修改，此网站预览尚未包含。点击网站效果预览可更新。</p>}
           {taskId && <PublicationTask key={taskId} id={taskId} publicUrl={publicUrl && detail?.slug ? `${publicUrl.replace(/\/$/, "")}/archives/${encodeURIComponent(detail.slug)}/` : undefined} onSuccess={() => { void getArticle(activeID.current!).then((result) => { detailRef.current = result;setDetail(result); }); }} />}
-          {!isNew && detail && <section id="article-history" className="scroll-mt-20"><RevisionHistory current={values} timezone={timezone} articleId={detail.id} version={detail.draft.version} disabled={readOnly || conflict} dirty={dirty} onRestore={restore} /></section>}
         </form>
       )}
+      </div>
       <ConfirmDialog open={confirmation !== null} title={confirmation === "article" ? "发布当前文章？" : confirmation === "unpublish" ? "下线文章？" : confirmation === "archive" ? "归档文章？" : "恢复文章编辑？"} description={confirmation === "article" ? "提交时固定当前工作稿。其他文章和站点配置保持线上版本。" : confirmation === "unpublish" ? "完成后公开站点移除此文章及无文章的聚合入口。" : confirmation === "archive" ? "已下线且无在途任务的文章可以归档。" : "恢复工作稿编辑，不自动上线。"} loading={saving} onCancel={() => setConfirmation(null)} onConfirm={() => { if (confirmation === "article" || confirmation === "unpublish") void publish(confirmation); else void lifecycle(confirmation === "archive" ? "archived" : "active"); }} />
       <ConfirmDialog open={blocker.state === "blocked"} title="离开文章编辑？" description="尚未保存的本地修改将丢失。" confirmText="离开" cancelText="继续编辑" onConfirm={() => blocker.state === "blocked" && blocker.proceed()} onCancel={() => blocker.state === "blocked" && blocker.reset()} />
     </PermissionGuard>

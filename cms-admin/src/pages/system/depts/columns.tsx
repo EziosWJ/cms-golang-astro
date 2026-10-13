@@ -1,5 +1,6 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { StatusTag } from "@/components/common/status-tag";
+import { TableActions } from "@/components/common/table-actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { ApiStatus, DataTableColumn, DeptRecord } from "@/types";
@@ -125,7 +126,7 @@ export function createDeptColumns({
       align: "center",
       width: 260,
       render: (_, dept) => (
-        <div className="inline-flex flex-wrap items-center justify-center gap-1">
+        <TableActions>
           <Button size="sm" variant="ghost" onClick={() => void onEdit(dept)}>
             <Pencil className="h-4 w-4" aria-hidden />
             编辑
@@ -148,7 +149,7 @@ export function createDeptColumns({
             <Trash2 className="h-4 w-4" aria-hidden />
             删除
           </Button>
-        </div>
+        </TableActions>
       ),
     },
   ];

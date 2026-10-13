@@ -1,5 +1,6 @@
 import { Pencil, Plus, Trash2 } from "lucide-react";
 import { StatusTag } from "@/components/common/status-tag";
+import { TableActions } from "@/components/common/table-actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getMenuIcon } from "@/lib/menu-icons";
@@ -173,7 +174,7 @@ export function createMenuColumns({
       align: "center",
       width: 330,
       render: (_, menu) => (
-        <div className="inline-flex flex-wrap items-center justify-center gap-1">
+        <TableActions>
           <Button size="sm" variant="ghost" onClick={() => onEdit(menu)}>
             <Pencil className="h-4 w-4" aria-hidden />
             编辑
@@ -204,7 +205,7 @@ export function createMenuColumns({
             <Trash2 className="h-4 w-4" aria-hidden />
             删除
           </Button>
-        </div>
+        </TableActions>
       ),
     },
   ];

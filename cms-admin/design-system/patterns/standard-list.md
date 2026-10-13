@@ -21,7 +21,7 @@ DataTableCard
 
 ## 4. 应复用的公共组件
 
-优先复用 `PageHeader`、`SearchFilterBar`、`DataTableCard`、`TableToolbar`、`DataTable`、`Pagination`、`EmptyState`、`StatusTag` 和 `Button`。表格卡片的 border、radius、shadow、Toolbar 分隔和分页区由 `DataTableCard` 及其组合组件提供。
+优先复用 `PageHeader`、`SearchFilterBar`、`DataTableCard`、`TableToolbar`、`DataTable`、`Pagination`、`EmptyState`、`StatusTag`、`TableActions` 和 `Button`。表格卡片的 border、radius、shadow、Toolbar 分隔和分页区由 `DataTableCard` 及其组合组件提供。操作列使用 `TableActions` 保持单行；窄屏时由表格横向滚动承载完整操作，不在单元格内折行。
 
 ## 5. 页面自行负责的业务内容
 

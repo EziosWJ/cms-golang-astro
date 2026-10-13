@@ -8,6 +8,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { ApiStatusTag } from "@/components/common/api-status-tag";
+import { TableActions } from "@/components/common/table-actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDateTime } from "@/lib/datetime";
@@ -149,7 +150,7 @@ export function createFileColumns(actions: FileColumnActions): DataTableColumn<F
         const nextStatus = record.status === 1 ? 0 : 1;
 
         return (
-          <div className="inline-flex flex-wrap items-center justify-center gap-1">
+          <TableActions>
             <Button
               size="sm"
               variant="ghost"
@@ -207,7 +208,7 @@ export function createFileColumns(actions: FileColumnActions): DataTableColumn<F
               <Trash2 className="h-4 w-4" aria-hidden />
               删除
             </Button>
-          </div>
+          </TableActions>
         );
       },
     },

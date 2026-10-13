@@ -26,6 +26,7 @@ import { PublicationsPage } from "@/pages/content/publications";
 import { SiteConfigPage } from "@/pages/content/site-config";
 
 const ArticleEditorPage = lazy(() => import("@/pages/content/articles/editor").then((module) => ({ default: module.ArticleEditorPage })));
+const ArticleRevisionHistoryPage = lazy(() => import("@/pages/content/articles/revisions").then((module) => ({ default: module.ArticleRevisionHistoryPage })));
 
 export const router = createBrowserRouter([
   {
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
       { path: "content/taxonomy", element: <TaxonomyPage /> },
       { path: "content/articles", element: <ArticlesPage /> },
       { path: "content/articles/new", element: <Suspense fallback={<p role="status">加载编辑器…</p>}><ArticleEditorPage /></Suspense> },
+      { path: "content/articles/:id/revisions", element: <Suspense fallback={<p role="status">加载历史版本…</p>}><ArticleRevisionHistoryPage /></Suspense> },
       { path: "content/articles/:id", element: <Suspense fallback={<p role="status">加载编辑器…</p>}><ArticleEditorPage /></Suspense> },
       {
         index: true,

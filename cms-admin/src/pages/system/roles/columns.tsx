@@ -1,5 +1,6 @@
 import { Pencil, ShieldCheck, Trash2 } from "lucide-react";
 import { StatusTag } from "@/components/common/status-tag";
+import { TableActions } from "@/components/common/table-actions";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { formatDateOnly } from "@/lib/datetime";
@@ -136,7 +137,7 @@ export function createRoleColumns({
       align: "center",
       width: 320,
       render: (_, role) => (
-        <div className="inline-flex flex-wrap items-center justify-center gap-1">
+        <TableActions>
           <Button size="sm" variant="ghost" onClick={() => onEdit(role)}>
             <Pencil className="h-4 w-4" aria-hidden />
             编辑
@@ -167,7 +168,7 @@ export function createRoleColumns({
             <Trash2 className="h-4 w-4" aria-hidden />
             删除
           </Button>
-        </div>
+        </TableActions>
       ),
     },
   ];
