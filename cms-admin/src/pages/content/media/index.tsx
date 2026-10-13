@@ -1,6 +1,5 @@
 import {
   Download,
-  Eye,
   File as FileIcon,
   FileImage,
   Grid2X2,
@@ -43,8 +42,8 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import type { DataTableColumn } from "@/types/table";
 import { MediaUpload } from "./upload";
-import { MarkdownMediaImage } from "./preview";
-import { MediaPreviewDialog } from "./preview-dialog";
+import { MarkdownMediaImage, MediaPhoto } from "./preview";
+import { PhotoProvider } from "react-photo-view";
 
 const PAGE_SIZE = 20;
 const ownerLabels: Record<string, string> = {
@@ -109,7 +108,6 @@ export function MediaPage() {
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState<MediaRecord | null>(null);
   const [removingLoading, setRemovingLoading] = useState(false);
-  const [preview, setPreview] = useState<MediaRecord | null>(null);
   const [dimensions, setDimensions] = useState("");
   const [selected, setSelected] = useState<MediaRecord | null>(null);
   const [references, setReferences] = useState<MediaReference[] | null>(null);
@@ -190,10 +188,10 @@ export function MediaPage() {
           <button
             type="button"
             className="flex h-14 w-14 items-center justify-center rounded-control border border-border bg-neutral-background hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            onClick={() => setPreview(file)}
-            aria-label={`预览 ${file.originalName}`}
+            onClick={() => void openDetail(file)}
+            aria-label={`查看 ${file.originalName} 的详情`}
           >
-            <MediaThumb file={file} />
+            {file.image ? <MediaPhoto file={file} /> : <MediaThumb file={file} />}
           </button>
         ),
       },
@@ -225,9 +223,6 @@ export function MediaPage() {
         nowrap: true,
         render: (_, file) => (
           <TableActions>
-            <Button size="icon" variant="ghost" aria-label={`预览 ${file.originalName}`} title="预览" onClick={() => setPreview(file)}>
-              <Eye className="h-4 w-4" aria-hidden />
-            </Button>
             <Button size="icon" variant="ghost" aria-label={`下载 ${file.originalName}`} title="下载" onClick={() => void handleDownload(file)}>
               <Download className="h-4 w-4" aria-hidden />
             </Button>
@@ -269,10 +264,10 @@ export function MediaPage() {
             <button
               type="button"
               className="flex h-44 w-full items-center justify-center bg-neutral-background p-space-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
-              onClick={() => setPreview(file)}
-              aria-label={`预览 ${file.originalName}`}
+              onClick={() => void openDetail(file)}
+              aria-label={`查看 ${file.originalName} 的详情`}
             >
-              <MediaThumb file={file} large />
+              {file.image ? <MediaPhoto file={file} large /> : <MediaThumb file={file} large />}
             </button>
             <div className="space-y-space-2 p-space-3">
               <button type="button" className="block w-full truncate text-left text-sm font-medium text-text-primary hover:text-primary hover:underline" title={file.originalName} onClick={() => void openDetail(file)}>
@@ -282,7 +277,7 @@ export function MediaPage() {
                 {typeLabel(file)} · {formatFileSize(file.fileSize)} · {formatDateTime(file.createTime)}
               </p>
               <div className="flex items-center gap-1 border-t border-border pt-space-2">
-                <Button size="sm" variant="ghost" onClick={() => setPreview(file)}><Eye className="h-3.5 w-3.5" aria-hidden />预览</Button>
+                <Button size="sm" variant="ghost" onClick={() => void openDetail(file)}>详情</Button>
                 <Button size="sm" variant="ghost" onClick={() => void handleDownload(file)}><Download className="h-3.5 w-3.5" aria-hidden />下载</Button>
                 <Button size="icon" variant="ghost" className="ml-auto h-7 w-7" aria-label="复制路径" title="复制路径" onClick={() => void handleCopyPath(file)}><Link2 className="h-4 w-4" aria-hidden /></Button>
                 <PermissionGuard permissionCode="content:media:edit">
@@ -298,6 +293,7 @@ export function MediaPage() {
 
   return (
     <PermissionGuard permissionCode="content:media:edit" fallback={<EmptyState title="无访问权限" />}>
+      <PhotoProvider loop={false} maskOpacity={0.92} photoClosable={false}>
       <PageHeader
         title="媒体库"
         description="管理图片和附件，上传后可在文章、页面和配置中重复使用。"
@@ -382,8 +378,6 @@ export function MediaPage() {
         </ContentCard>
       )}
 
-      <MediaPreviewDialog record={preview} onClose={() => setPreview(null)} onDownload={(file) => void handleDownload(file)} />
-
       <ConfirmDialog
         open={removing !== null}
         title="删除媒体？"
@@ -406,6 +400,7 @@ export function MediaPage() {
             .finally(() => setRemovingLoading(false));
         }}
       />
+      </PhotoProvider>
     </PermissionGuard>
   );
 }

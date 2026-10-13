@@ -4,6 +4,7 @@ import { RouterProvider } from "react-router-dom";
 import { ToastProvider } from "@/components/common/toast";
 import { router } from "@/router";
 import "@/styles/globals.css";
+import "react-photo-view/dist/react-photo-view.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
