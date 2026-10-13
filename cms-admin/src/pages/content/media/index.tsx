@@ -1,7 +1,7 @@
 import {
   Download,
   File as FileIcon,
-  FileImage,
+  FileText,
   Grid2X2,
   Link2,
   List,
@@ -9,10 +9,8 @@ import {
   Search,
   Trash2,
   UploadCloud,
-  X,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   deleteMedia,
   getMediaPage,
@@ -23,7 +21,6 @@ import {
   type MediaSort,
 } from "@/api/media";
 import { downloadFile } from "@/api/file";
-import { hasPermission } from "@/lib/permission";
 import { getErrorMessage } from "@/lib/api-error";
 import { formatDateTime } from "@/lib/datetime";
 import { PermissionGuard } from "@/components/auth/permission-guard";
@@ -42,20 +39,11 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import type { DataTableColumn } from "@/types/table";
 import { MediaUpload } from "./upload";
-import { MarkdownMediaImage, MediaPhoto } from "./preview";
+import { MarkdownMediaImage, MediaPhoto, MediaPreviewButton } from "./preview";
+import { MediaDetailDialog } from "./media-detail-dialog";
 import { PhotoProvider } from "react-photo-view";
 
 const PAGE_SIZE = 20;
-const ownerLabels: Record<string, string> = {
-  draft: "文章工作稿",
-  revision: "历史版本",
-  config: "工作配置",
-  config_revision: "配置历史",
-  task: "发布任务",
-  preview: "私有预览",
-  release: "保留发布产物",
-  attempt: "构建尝试 / 预览产物",
-};
 
 function formatFileSize(size: number) {
   if (size < 1024) return `${size} B`;
@@ -108,7 +96,6 @@ export function MediaPage() {
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState<MediaRecord | null>(null);
   const [removingLoading, setRemovingLoading] = useState(false);
-  const [dimensions, setDimensions] = useState("");
   const [selected, setSelected] = useState<MediaRecord | null>(null);
   const [references, setReferences] = useState<MediaReference[] | null>(null);
   const [referenceError, setReferenceError] = useState("");
@@ -134,17 +121,21 @@ export function MediaPage() {
     };
   }, [page, name, kind, sort, refresh]);
 
-  async function openDetail(file: MediaRecord) {
-    setSelected(file);
-    setDimensions("");
-    setReferences(null);
+  const loadReferences = useCallback(async (fileId: number) => {
     setReferenceError("");
     try {
-      setReferences(await getMediaReferences(file.id));
+      setReferences(await getMediaReferences(fileId));
     } catch (err) {
       setReferenceError(getErrorMessage(err, "引用查询失败；不能据此判断资源没有引用"));
     }
-  }
+  }, []);
+
+  const openDetail = useCallback(async (file: MediaRecord) => {
+    setSelected(file);
+    setReferences(null);
+    setReferenceError("");
+    await loadReferences(file.id);
+  }, [loadReferences]);
 
   async function handleDownload(file: MediaRecord) {
     try {
@@ -185,14 +176,9 @@ export function MediaPage() {
         key: "preview",
         width: 92,
         render: (_, file) => (
-          <button
-            type="button"
-            className="flex h-14 w-14 items-center justify-center rounded-control border border-border bg-neutral-background hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            onClick={() => void openDetail(file)}
-            aria-label={`查看 ${file.originalName} 的详情`}
-          >
+          <div className="flex h-14 w-14 items-center justify-center rounded-control border border-border bg-neutral-background">
             {file.image ? <MediaPhoto file={file} /> : <MediaThumb file={file} />}
-          </button>
+          </div>
         ),
       },
       {
@@ -223,6 +209,10 @@ export function MediaPage() {
         nowrap: true,
         render: (_, file) => (
           <TableActions>
+            <MediaPreviewButton file={file} size="icon" />
+            <Button size="icon" variant="ghost" aria-label={`查看 ${file.originalName} 的详情`} title="详情" onClick={() => void openDetail(file)}>
+              <FileText className="h-4 w-4" aria-hidden />
+            </Button>
             <Button size="icon" variant="ghost" aria-label={`下载 ${file.originalName}`} title="下载" onClick={() => void handleDownload(file)}>
               <Download className="h-4 w-4" aria-hidden />
             </Button>
@@ -238,7 +228,7 @@ export function MediaPage() {
         ),
       },
     ],
-    [],
+    [openDetail],
   );
 
   function renderGrid() {
@@ -261,14 +251,11 @@ export function MediaPage() {
       <div className="grid gap-space-4 p-card sm:grid-cols-2 xl:grid-cols-4">
         {records.map((file) => (
           <article key={file.id} className="group min-w-0 overflow-hidden rounded-admin border border-border bg-surface transition-colors hover:border-primary">
-            <button
-              type="button"
+            <div
               className="flex h-44 w-full items-center justify-center bg-neutral-background p-space-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
-              onClick={() => void openDetail(file)}
-              aria-label={`查看 ${file.originalName} 的详情`}
             >
               {file.image ? <MediaPhoto file={file} large /> : <MediaThumb file={file} large />}
-            </button>
+            </div>
             <div className="space-y-space-2 p-space-3">
               <button type="button" className="block w-full truncate text-left text-sm font-medium text-text-primary hover:text-primary hover:underline" title={file.originalName} onClick={() => void openDetail(file)}>
                 {file.originalName}
@@ -277,7 +264,8 @@ export function MediaPage() {
                 {typeLabel(file)} · {formatFileSize(file.fileSize)} · {formatDateTime(file.createTime)}
               </p>
               <div className="flex items-center gap-1 border-t border-border pt-space-2">
-                <Button size="sm" variant="ghost" onClick={() => void openDetail(file)}>详情</Button>
+                <MediaPreviewButton file={file} />
+                <Button size="sm" variant="ghost" onClick={() => void openDetail(file)}><FileText className="h-4 w-4" aria-hidden />详情</Button>
                 <Button size="sm" variant="ghost" onClick={() => void handleDownload(file)}><Download className="h-3.5 w-3.5" aria-hidden />下载</Button>
                 <Button size="icon" variant="ghost" className="ml-auto h-7 w-7" aria-label="复制路径" title="复制路径" onClick={() => void handleCopyPath(file)}><Link2 className="h-4 w-4" aria-hidden /></Button>
                 <PermissionGuard permissionCode="content:media:edit">
@@ -350,33 +338,19 @@ export function MediaPage() {
         )}
       </DataTableCard>
 
-      {selected && (
-        <ContentCard
-          className="mt-space-4"
-          title={selected.originalName}
-          extra={
-            <div className="flex items-center gap-space-2">
-              <Button size="sm" variant="secondary" onClick={() => void handleCopyPath(selected)}><Link2 className="h-4 w-4" aria-hidden />复制路径</Button>
-              <Button size="icon" variant="ghost" aria-label="关闭详情" onClick={() => setSelected(null)}><X className="h-4 w-4" aria-hidden /></Button>
-            </div>
-          }
-        >
-          <div className="grid gap-space-5 lg:grid-cols-[180px_minmax(0,1fr)]">
-            <div className="flex h-40 items-center justify-center rounded-admin border border-border bg-neutral-background p-space-3">
-              {selected.image ? <MarkdownMediaImage src={selected.stablePath} alt={selected.originalName} onLoad={(event) => setDimensions(`${event.currentTarget.naturalWidth} × ${event.currentTarget.naturalHeight} 像素`)} className="max-h-full max-w-full object-contain" /> : <FileImage className="h-12 w-12 text-text-tertiary" aria-hidden />}
-            </div>
-            <div className="min-w-0 space-y-space-3 text-sm">
-              <p className="text-text-secondary">{typeLabel(selected)} · {selected.mimeType} · {formatFileSize(selected.fileSize)}{dimensions && ` · ${dimensions}`}</p>
-              <p className="text-text-tertiary">上传时间：{formatDateTime(selected.createTime)}</p>
-              <p className="break-all rounded-control bg-neutral-background px-space-3 py-space-2 text-text-secondary">{selected.stablePath}</p>
-              <div>
-                <h3 className="font-medium text-text-primary">引用来源</h3>
-                {referenceError ? <div className="mt-space-2"><p className="text-error" role="alert">{referenceError}</p><Button size="sm" variant="ghost" className="mt-space-2" onClick={() => void openDetail(selected)}>重试引用查询</Button></div> : references === null ? <p className="mt-space-1 text-text-tertiary">正在查询引用…</p> : references.length ? <ul className="mt-space-2 space-y-space-1 text-text-secondary">{references.map((ref) => <li key={`${ref.ownerType}:${ref.ownerId}`}>{ownerLabels[ref.ownerType] ?? ref.ownerType} · {ref.articleId && hasPermission("content:article:edit") ? <Link to={`/content/articles/${ref.articleId}`} className="text-primary hover:underline">{ref.title || "未命名文章"}</Link> : `#${ref.ownerId}`}</li>)}</ul> : <p className="mt-space-1 text-text-tertiary">当前未记录引用，删除时服务器仍会重新检查。</p>}
-              </div>
-            </div>
-          </div>
-        </ContentCard>
-      )}
+      <MediaDetailDialog
+        open={selected !== null}
+        record={selected}
+        references={references}
+        referenceError={referenceError}
+        onRetryReferences={() => {
+          if (selected) void loadReferences(selected.id);
+        }}
+        onCopyPath={() => {
+          if (selected) void handleCopyPath(selected);
+        }}
+        onCancel={() => setSelected(null)}
+      />
 
       <ConfirmDialog
         open={removing !== null}
