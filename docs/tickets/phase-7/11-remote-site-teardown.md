@@ -2,7 +2,7 @@
 
 [ADR-0009](../../adr/0009-site-config-collection-and-remote-delivery.md) 决策一（「停用**不等于**下线线上站点——下线是独立的、需二次确认的动作」）；阶段说明见 [README.md](README.md)。
 
-本 Ticket 为本地新建，**未创建远端 Issue**。
+远端：[#92](https://github.com/EziosWJ/cms-golang-astro/issues/92)。
 
 ## What to build
 

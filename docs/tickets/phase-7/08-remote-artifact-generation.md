@@ -2,7 +2,7 @@
 
 [ADR-0009](../../adr/0009-site-config-collection-and-remote-delivery.md) 决策三（上传单元、呈现差异）；阶段说明见 [README.md](README.md)。
 
-本 Ticket 为本地新建，**未创建远端 Issue**。
+远端：[#89](https://github.com/EziosWJ/cms-golang-astro/issues/89)。
 
 ## What to build
 

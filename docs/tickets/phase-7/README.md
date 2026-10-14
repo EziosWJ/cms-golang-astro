@@ -1,8 +1,8 @@
 # Phase 7 本地 Tickets
 
-父阶段：无。本阶段为本地新建，**未创建远端 Issue**。
+父阶段：[#81](https://github.com/EziosWJ/cms-golang-astro/issues/81) — [Phase 7] 站点配置集合与远端交付目标。
 
-决策依据：[ADR-0009](../adr/0009-site-config-collection-and-remote-delivery.md)（站点配置集合与远端交付目标）。术语依据：[CONTEXT.md](../../CONTEXT.md)（站点配置 / 站点标识 / 交付目标 / 交付记录）。
+决策依据：[ADR-0009](../../adr/0009-site-config-collection-and-remote-delivery.md)（站点配置集合与远端交付目标）。术语依据：[CONTEXT.md](../../CONTEXT.md)（站点配置 / 站点标识 / 交付目标 / 交付记录）。
 
 ## 本阶段分为两个可独立验收的交付阶段
 
@@ -19,24 +19,24 @@ ADR-0009 决策五把工作分为一期与二期，边界是**「发布域是否
 
 ### 一期：站点配置集合（发布域不变）
 
-| Ticket | 本地文件 | 交付行为 | 直接前置 |
-| --- | --- | --- | --- |
-| P7-01 | [01-site-config-collection-schema.md](01-site-config-collection-schema.md) | 站点配置集合的数据模型与迁移 | 无 |
-| P7-02 | [02-siteconfig-domain.md](02-siteconfig-domain.md) | siteconfig 域按站点维度化，local 语义固定为角色 | P7-01 |
-| P7-03 | [03-admin-site-dimension.md](03-admin-site-dimension.md) | 管理后台的站点维度与公开地址语义 | P7-02 |
-| P7-04 | [04-permission-audit-isolation.md](04-permission-audit-isolation.md) | 权限、审计与多站点隔离回归 | P7-03 |
+| Ticket | GitHub Issue | 本地文件 | 交付行为 | 直接前置 |
+| --- | --- | --- | --- | --- |
+| P7-01 | [#82](https://github.com/EziosWJ/cms-golang-astro/issues/82) | [01-site-config-collection-schema.md](01-site-config-collection-schema.md) | 站点配置集合的数据模型与迁移 | 无 |
+| P7-02 | [#83](https://github.com/EziosWJ/cms-golang-astro/issues/83) | [02-siteconfig-domain.md](02-siteconfig-domain.md) | siteconfig 域按站点维度化，local 语义固定为角色 | P7-01 |
+| P7-03 | [#84](https://github.com/EziosWJ/cms-golang-astro/issues/84) | [03-admin-site-dimension.md](03-admin-site-dimension.md) | 管理后台的站点维度与公开地址语义 | P7-02 |
+| P7-04 | [#85](https://github.com/EziosWJ/cms-golang-astro/issues/85) | [04-permission-audit-isolation.md](04-permission-audit-isolation.md) | 权限、审计与多站点隔离回归 | P7-03 |
 
 ### 二期：远端交付目标（首版 Cloudflare Pages）
 
-| Ticket | 本地文件 | 交付行为 | 直接前置 |
-| --- | --- | --- | --- |
-| P7-05 | [05-remote-semantics-probe.md](05-remote-semantics-probe.md) | 先实测远端 404 / trailing slash / `_headers` / 缓存语义 | 无（可与一期并行；**需用户先完成账号侧准备**） |
-| P7-06 | [06-delivery-record-and-artifact-root.md](06-delivery-record-and-artifact-root.md) | 交付记录表、独立产物根与独立保留策略 | P7-04、P7-05 |
-| P7-07 | [07-remote-credential.md](07-remote-credential.md) | 远端凭据独立表与掩码读取 | P7-01 |
-| P7-08 | [08-remote-artifact-generation.md](08-remote-artifact-generation.md) | 远端产物生成：`_headers`、前置检查、上传集合 | P7-06 |
-| P7-09 | [09-two-stage-delivery.md](09-two-stage-delivery.md) | 两阶段交付执行、失败语义与后台入口 | P7-07、P7-08 |
-| P7-10 | [10-acceptance.md](10-acceptance.md) | 端到端验收与文档收尾 | P7-09、P7-11 |
-| P7-11 | [11-remote-site-teardown.md](11-remote-site-teardown.md) | 显式的远端站点下线（与「停用配置」不同） | P7-09 |
+| Ticket | GitHub Issue | 本地文件 | 交付行为 | 直接前置 |
+| --- | --- | --- | --- | --- |
+| P7-05 | [#86](https://github.com/EziosWJ/cms-golang-astro/issues/86) | [05-remote-semantics-probe.md](05-remote-semantics-probe.md) | 先实测远端 404 / trailing slash / `_headers` / 缓存语义 | 无（可与一期并行；**需用户先完成账号侧准备**） |
+| P7-06 | [#87](https://github.com/EziosWJ/cms-golang-astro/issues/87) | [06-delivery-record-and-artifact-root.md](06-delivery-record-and-artifact-root.md) | 交付记录表、独立产物根与独立保留策略 | P7-04、P7-05 |
+| P7-07 | [#88](https://github.com/EziosWJ/cms-golang-astro/issues/88) | [07-remote-credential.md](07-remote-credential.md) | 远端凭据独立表与掩码读取 | P7-01 |
+| P7-08 | [#89](https://github.com/EziosWJ/cms-golang-astro/issues/89) | [08-remote-artifact-generation.md](08-remote-artifact-generation.md) | 远端产物生成：`_headers`、前置检查、上传集合 | P7-06 |
+| P7-09 | [#90](https://github.com/EziosWJ/cms-golang-astro/issues/90) | [09-two-stage-delivery.md](09-two-stage-delivery.md) | 两阶段交付执行、失败语义与后台入口 | P7-07、P7-08 |
+| P7-10 | [#91](https://github.com/EziosWJ/cms-golang-astro/issues/91) | [10-acceptance.md](10-acceptance.md) | 端到端验收与文档收尾 | P7-09、P7-11 |
+| P7-11 | [#92](https://github.com/EziosWJ/cms-golang-astro/issues/92) | [11-remote-site-teardown.md](11-remote-site-teardown.md) | 显式的远端站点下线（与「停用配置」不同） | P7-09 |
 
 ## 依赖图
 
