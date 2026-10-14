@@ -20,7 +20,7 @@
 > 冻结清单里的对象**不是同一种东西**：`cms_publish_state`、`cms_publish_task`、`cms_publish_attempt`、`cms_release`、`cms_published_article` 是**表**；`cms_article.slug_locked_at` 是**列**；`deployment.Pointer` 是 `current.json` **文件**与 Go 结构体；保留策略是**逻辑**。因此不能用同一种断言覆盖。
 
 - [ ] **表与列：精确列集合断言。** 上述五张表与 `cms_article` 的列集合被逐一断言，**不含任何站点维度列**；断言放进既有 SQLite 与 PostgreSQL 契约测试（CI 已有对应 job），两套方言都覆盖。
-- [ ] **非表的三项：行为断言**（走既有已认证 HTTP seam，不测结构体形状、不用反射）：
+- [ ] **行为断言**（走既有已认证 HTTP seam，不测结构体形状、不用反射）：
   - [ ] `current.json` **字节不变**：任一非 local 站点的增 / 改 / 停用前后，`current.json` 的内容逐字节相同。
   - [ ] `cms_publish_state` 与 `cms_published_article` 的**行内容不变**：同上操作前后逐行比对相同。
   - [ ] 保留候选集合**不含交付记录**：一期不引入交付记录，此处断言保留策略的候选集与改动前一致。

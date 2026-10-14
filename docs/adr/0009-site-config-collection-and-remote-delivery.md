@@ -44,6 +44,14 @@
 - 交付**只依赖数据库中的 manifest 记录与受保护媒体**，不依赖 local 的产物文件；因此 local 的产物清理不影响远端交付。
 - 字节必须**重新构建**：`publicUrl` 进入 canonical 与 `og:url`，产物与域名绑定，不能复用 local 已构建的文件；但**内容选择不重新推导**，否则同一站点的两个出口可能选出不同文章集合。
 
+**媒体引用保护（必须在实现中落地，"受保护媒体"不是口号）**：
+
+- 媒体文件由引用保护：`media.ProtectDelete` 按 `file_id` **全表计数**，任何 owner 的一条引用都能保护该文件；而 `media.SetReferences` 按 `(owner_type, owner_id)` 分区**全删再全插**。
+- 因此**在途交付必须登记自己的媒体引用**：使用新的 `owner_type`（如 `deployment`），与既有的 `release` / `attempt` 并列。因为引用按 `(owner_type, owner_id)` 分区，新增命名空间**不会与既有引用互相覆盖**。
+- 交付到达**终态后释放**这些引用——这正是本地 `attempt` → `release` 的既有模式（在途由 attempt 保护，登记为 release 后由 release 保护）。
+- 不这样做的具体失效：一份交付长期停在**待核实 / 部分成功**时，local 若继续发布并清理旧 release，其基线快照引用的媒体会被回收；此后「重试固定原内容快照」会因媒体已不存在而失败，且失败原因指向「媒体缺失」，与交付逻辑无关，极难排查。
+- 兜底：若基线已不再是 local 当前线上版本**且**其媒体确实不可用，必须**明确失败并给出可操作提示**，不得表现为随机错误。
+
 **产物根与私有预览边界（硬约束）**：`builder.Build` 目前只按 `PreviewTaskID` 在两个产物根之间选择（`releases/` 或 `previews/`，见 `cms-api/internal/builder/builder.go`）。交付必须使用**独立的第三个产物根**（`deployments/<site>/<key>/`），且**交付构建不得设置 `PreviewTaskID`**。
 
 > **私有预览产物永不出境。** `previews/` 产物根由认证的私有 Astro 预览使用（经 `CMS_BASE_PATH=/api/v1/previews/{id}/`、由 Go 侧鉴权后服务，见 ADR-0004）。交付适配器**不得**以 `previews/` 或 `releases/` 作为上传源；只有交付自身生成的产物根可上传。实现者若按「目标」分支而漏掉这一条，私有预览会被推到公网。
