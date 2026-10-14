@@ -81,8 +81,30 @@ function filterDuplicateNavItems(
   return nextItems;
 }
 
+/**
+ * 纯授权菜单：只为把权限码下发给前端而存在，`path` 指向它所属的既有页面，不产生
+ * 任何导航条目。
+ *
+ * 后端必须把它们 seed 成 `visible = 1`（`/api/auth/menus` 只返回可见菜单），所以
+ * 「不占菜单位」只能由前端按**权限码**显式排除：`mergeNavItems` 的去重只用 baseItems
+ * 的路径比对一次，userItems 之间互不去重，靠路径躲不开重复条目。
+ */
+const nonNavigablePermissionCodes: string[] = [
+  "content:config:publish",
+  "content:site:manage",
+];
+
+function isNavigableMenu(menu: CurrentUserMenu): boolean {
+  if (menu.visible !== 1) return false;
+
+  return !(
+    menu.permissionCode &&
+    nonNavigablePermissionCodes.includes(menu.permissionCode)
+  );
+}
+
 function toNavItem(menu: CurrentUserMenu): NavItem | null {
-  if (menu.visible !== 1 || menu.permissionCode === "content:config:publish") return null;
+  if (!isNavigableMenu(menu)) return null;
 
   const sortedChildren = [...(menu.children ?? [])].sort(
     (a, b) => a.sortOrder - b.sortOrder,

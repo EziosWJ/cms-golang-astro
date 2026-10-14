@@ -12,8 +12,22 @@
 
 ## Acceptance criteria
 
-- [ ] 站点配置的管理（新增、修改、停用）具备权限点与菜单 seed，**以新增迁移落地**（不得改已应用的迁移）。
-- [ ] 审计记录中的站点配置 `ResourceID` 不再硬编码 1，按实际站点记录；动作类型能区分新增、修改、停用。
+- [ ] 站点配置的管理具备权限点（新增站点与停用/启用用新码 **`content:site:manage`**；改任意站点的配置沿用既有 `content:config:edit`）。
+  > **协调调整（2026-10-14）**：该权限点的 seed 迁移由 **P7-02** 落地（`seed/00010_*.sql` 两方言），因为它是 P7-02 新增路由的闸门——若不由 P7-02 落地，P7-02 自己的测试会全 403。**本票负责断言**，不重复建迁移。
+  >
+  > **同日修正（初版机制有误）**：该权限点必须 seed 成 **`visible=1`**，`path`/`component` 指向它所属的站点设置页——因为前端**唯一**的权限码来源是 `GET /api/auth/menus`，而该接口只下发可见菜单（`internal/auth/repository.go` 的 `FindVisibleMenusByUserID` 在 SQL 里带 `m.visible = 1`）。初版按「纯授权、不占菜单位」种成 `visible=0`，结果是权限码**永远到不了前端**、入口静默消失，而后端 403 照常工作、无人报错。「不占菜单位」改由 `cms-admin/src/config/navigation.ts` 的 `toNavItem` 按权限码显式排除来保证，与 `content:config:publish` 同形（注意路径去重保不住：`mergeNavItems` 只把 userItems 与 baseItems 比一次，userItems 之间互不去重）。
+  >
+  > 因此本票的断言必须到 **HTTP 层**：只断言 `sys_menu.visible` 那一列守不住这个类别——那正是初版漏过去的缝。
+- [ ] 断言该权限确实生效：`content:site:manage` 已 seed 且授予 ADMIN；缺该权限时新增站点 / 停用站点返回 **403**；既有 `content:config:edit` 仍守住配置读写。403 断言的既有范例见 `cms-api/integration/executor_integration_test.go:137-152`（toggle `sys_menu.status`）。
+- [ ] 审计的**动作类型**能区分新增、修改、停用：由 P7-02 按实际动作写入 `audit.Event.Action`，落进已有的 `sys_oper_log.operation_type` 列，可用已认证 HTTP seam 验证。
+
+### 审计 `ResourceID` 的真实边界（实施发现，务必按此执行）
+
+侦察确认：`cms-api/internal/audit/recorder.go:10-23` 的 `operationLog` 结构体**没有 `ResourceID` 与 `Summary` 字段**，`sys_oper_log` 表（`migrations/schema/00003_oper_log_schema.sql`）也**没有 `resource_id` 列**；`audit.NewRecorder` 在生产中无调用点，审计 100% 走 `audit.RecordOn`。**因此 `audit.Event.ResourceID` 在当前 schema 下不可观测。**
+
+- [ ] **作者已拍板（2026-10-14）**：只改事件层——`ResourceID` 按实际站点行 id 传入（不再硬编码 1），动作按实际取值。
+- [ ] 验证方式：用 `internal/siteconfig` 的单测断言事件对象，**走 P7-02 提供的审计事件纯构造函数**（P7-02 已被告知为此把事件构造抽成可测的纯函数），**不使用反射**。
+- [ ] **报告中必须如实写明**：`ResourceID` 当前不落库，只能做事件层断言，**不可**由 HTTP seam 或查库验证。不要把它写成「已端到端验证」。
 
 ### 发布域不变性：两类断言，各管各的
 
