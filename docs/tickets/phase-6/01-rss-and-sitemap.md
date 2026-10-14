@@ -1,6 +1,6 @@
 ## Parent
 
-远端：[#79](https://github.com/EziosWJ/cms-golang-astro/issues/79) — [Ticket P6-01] Site Core 生成 RSS 与 Sitemap。
+[#80](https://github.com/EziosWJ/cms-golang-astro/issues/80) — [Phase 6] Site Core 内容发现：RSS 与 Sitemap；本 Ticket 远端 Issue：[#79](https://github.com/EziosWJ/cms-golang-astro/issues/79)。
 
 缺口来源：本缺口已由 [#61](https://github.com/EziosWJ/cms-golang-astro/issues/61)（站点公开地址与已知缺口一致性）登记为“记录已知缺口：主题声明但不生成的 RSS/Sitemap 请求为 404……明确本阶段不实现，也不记为通过”。本 Ticket 把该欠账转为正式交付项。
 
