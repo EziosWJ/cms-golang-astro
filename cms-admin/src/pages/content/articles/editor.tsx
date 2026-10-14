@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { getEditorContext } from "@/api/site-config";
+import { publicArticleUrl, sitePublicUrl } from "@/lib/site-url";
 import { getMedia, uploadMedia } from "@/api/media";
 import { hasPermission } from "@/lib/permission";
 import { formatContentDate, parseContentDate } from "@/lib/content-date";
@@ -80,6 +81,8 @@ const [detail, setDetail] = useState<ArticleDetail | null>(null);
   const [values, setValues] = useState<FormValues>(emptyValues);
   const [baseline, setBaseline] = useState<FormValues>(emptyValues);
   const [publicUrl, setPublicUrl] = useState("");
+  // 编辑器只面向本地站点（editor-context 仅服务 local），这里的站点名就是本地站点名。
+  const [siteName, setSiteName] = useState("");
  const [hasConfig,setHasConfig] = useState(false);
   const [timezone, setTimezone] = useState("Asia/Shanghai");
 const [loading, setLoading] = useState(true);
@@ -110,13 +113,13 @@ const [loading, setLoading] = useState(true);
   useEffect(() => {
     if (detailRef.current && detailRef.current.id === activeID.current && (!id || Number(id) === activeID.current)) return;
     const controller = new AbortController();
-if (isNew) { getEditorContext(controller.signal).then((context)=> { if (!controller.signal.aborted) { setTimezone(context.timezone); setHasConfig(!!context.published); setPublicUrl(context.published?.data.publicUrl ?? ""); } }).catch((error:unknown)=>{if(!controller.signal.aborted)setLoadError(getErrorMessage(error,"加载时区失败"));}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});return ()=>controller.abort(); }
+if (isNew) { getEditorContext(controller.signal).then((context)=> { if (!controller.signal.aborted) { setTimezone(context.timezone); setSiteName(context.siteName); setHasConfig(!!context.published); setPublicUrl(sitePublicUrl(context)); } }).catch((error:unknown)=>{if(!controller.signal.aborted)setLoadError(getErrorMessage(error,"加载时区失败"));}).finally(()=>{if(!controller.signal.aborted)setLoading(false);});return ()=>controller.abort(); }
     if (!/^\d+$/.test(id ?? "") || Number(id) < 1) {
       setLoadError("文章不存在"); setLoading(false); return;
     }
     Promise.all([getArticle(Number(id), controller.signal),getEditorContext(controller.signal)]).then(([result, configuration]) => {
       if (controller.signal.aborted) return;
-      setTimezone(configuration.timezone); setHasConfig(!!configuration.published); setPublicUrl(configuration.published?.data.publicUrl ?? "");
+      setTimezone(configuration.timezone); setSiteName(configuration.siteName); setHasConfig(!!configuration.published); setPublicUrl(sitePublicUrl(configuration));
       const next = formFrom(result,configuration.timezone);
       void getPublications({page:1,pageSize:100}).then((tasks) => { if (!controller.signal.aborted) { const task=tasks.records.find((t) => t.articleId===result.id && ["queued","running","failed","interrupted"].includes(t.status)); if(task)setTaskId(task.id); } }).catch(() => undefined);
       activeID.current=result.id; detailRef.current = result; setDetail(result); setValues(next); setBaseline(next); setSlugEdited(true);
@@ -333,7 +336,7 @@ if (isNew) { getEditorContext(controller.signal).then((context)=> { if (!control
             <label htmlFor="article-slug" className="block text-form-label font-medium text-text-primary">公开链接路径<span className="article-field-tooltip" tabIndex={0} aria-describedby="article-slug-help"><CircleHelp className="h-3.5 w-3.5" aria-hidden /><span id="article-slug-help" role="tooltip">用于生成公开文章链接，例如 /archives/hello-world/；首次成功发布后固定。</span></span></label>
             <Input id="article-slug" value={values.slug} maxLength={200} placeholder="例如 hello-world" disabled={readOnly || !!detail?.slugLockedAt} onChange={(event) => { setSlugEdited(true); change("slug", event.target.value); }} />
           </div>
-          {publicUrl && values.slug && <p className="break-all text-helper text-text-tertiary">公开地址：{publicUrl.replace(/\/$/, "")}/archives/{encodeURIComponent(values.slug)}/</p>}
+          {publicUrl && values.slug && <p className="break-all text-helper text-text-tertiary">公开地址（本地站点{siteName ? `「${siteName}」` : ""}）：{publicArticleUrl(publicUrl, values.slug)}</p>}
           <Field label="展示日期" htmlFor="article-date" help="可留空，发布时确定默认日期。"><Input id="article-date" type="datetime-local" step="1" value={values.displayDate} disabled={readOnly} onChange={(event) => change("displayDate", event.target.value)} /></Field>
         </div>
       </details>
@@ -351,7 +354,7 @@ if (isNew) { getEditorContext(controller.signal).then((context)=> { if (!control
         <Button size="sm" onClick={() => navigate(listPath)}><ArrowLeft className="h-4 w-4" aria-hidden />返回列表</Button>
       </div>} />
       {detail && <p className="article-editor-lifecycle" role="status">{detail.lifecycle === "archived" ? "已归档" : detail.published ? `已上线${detail.unpublishedChanges || dirty ? " · 仍有未发布修改" : " · 工作稿与线上内容一致"}` : "草稿 · 尚未上线"}</p>}
-      {!hasConfig && !loading && <div className="article-setup-alert" role="status"><div><strong>先把站点准备好</strong><span>首次发布前需要站点名称、公开地址和作者资料；现在可以先开始写作。</span></div><Button size="sm" onClick={() => navigate(`/content/site-config?returnTo=${encodeURIComponent(id ? `/content/articles/${id}` : "/content/articles/new")}`)}>完成站点设置</Button></div>}
+      {!hasConfig && !loading && <div className="article-setup-alert" role="status"><div><strong>本地站点尚未准备好</strong><span>文章只在本地站点发布，公开链接也用本地站点的公开地址。首次发布前需要本地站点{siteName ? `「${siteName}」` : ""}的名称、公开地址和作者资料；现在可以先开始写作。</span></div><Button size="sm" onClick={() => navigate(`/content/site-config?returnTo=${encodeURIComponent(id ? `/content/articles/${id}` : "/content/articles/new")}`)}>完成站点设置</Button></div>}
       {storageError && <p role="alert" className="mb-space-4 text-warning">{storageError}</p>}
  {recovery && <ContentCard title="发现浏览器临时恢复副本" description="仅此浏览器可用。恢复前请比较输入；数据库仍是内容主数据源。"><DraftComparison local={recovery.values} remote={baseline} /><Button onClick={recoverCopy}>恢复本地输入</Button><Button onClick={() => { if (window.confirm("清除这份未确认保存的浏览器副本？")) clearCopy(); }}>放弃并清除副本</Button></ContentCard>}
  {dirty && !recovery && <p className="mb-space-3 text-sm text-text-secondary">{storageError ? "当前输入尚未保存到服务器，浏览器保护受限。" : "临时副本仅保留在当前浏览器。"}<Button size="sm" onClick={() => { if (window.confirm("清除本地恢复副本？当前编辑输入仍保留，后续修改会重新保护。")) clearCopy(); }}>清除副本</Button></p>}
@@ -379,7 +382,7 @@ if (isNew) { getEditorContext(controller.signal).then((context)=> { if (!control
           {saveError && <div className="article-editor-error" role="alert"><span>{saveError}</span>{!conflict && <Button size="sm" onClick={() => void persist("manual")}>重试保存</Button>}</div>}
           {publishError && <ContentCard title="提交失败"><p role="alert" className="text-error">{publishError}</p>{publishRequest.current && <Button disabled={saving} onClick={() => void publish(publishRequest.current!.input.kind)}>重试同一请求</Button>}</ContentCard>}
           {previewSnapshot && previewSnapshot !== JSON.stringify(values) && <p role="status">文章已有新修改，此网站预览尚未包含。点击网站效果预览可更新。</p>}
-          {taskId && <PublicationTask key={taskId} id={taskId} publicUrl={publicUrl && detail?.slug ? `${publicUrl.replace(/\/$/, "")}/archives/${encodeURIComponent(detail.slug)}/` : undefined} onSuccess={() => { void getArticle(activeID.current!).then((result) => { detailRef.current = result;setDetail(result); }); }} />}
+          {taskId && <PublicationTask key={taskId} id={taskId} publicUrl={publicUrl && detail?.slug ? publicArticleUrl(publicUrl, detail.slug) : undefined} onSuccess={() => { void getArticle(activeID.current!).then((result) => { detailRef.current = result;setDetail(result); }); }} />}
         </form>
       )}
       </div>

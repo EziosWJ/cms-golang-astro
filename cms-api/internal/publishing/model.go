@@ -12,6 +12,11 @@ var ErrInvalid = errors.New("发布内容、修订或幂等键无效")
 var ErrNoBaseline = errors.New("请先发布站点配置建立线上基线")
 var ErrBlocked = errors.New("部署指针无法核实，已停止新发布，请检查 worker 恢复记录")
 
+// ErrConfigRevisionNotLocal 阻止把非 local 站点的配置修订当成本地线上配置装载。
+// 内容权威恒为 local（ADR-0009 决策二）：非 local 的修订只能随「向该站点的交付」
+// 生效，不能进入 local 的发布链路。提示必须可操作——让调用方改用 local 站点的修订。
+var ErrConfigRevisionNotLocal = errors.New("该配置修订不属于本地站点，不能用于本地发布；本地发布请先保存并选择本地站点的配置修订")
+
 type State struct {
 	ID               int64 `gorm:"primaryKey"`
 	CurrentReleaseID *int64

@@ -15,9 +15,18 @@ import (
 var (
 	gooseUpMarker   = regexp.MustCompile(`(?m)^-- \+goose Up\s*$`)
 	gooseDownMarker = regexp.MustCompile(`(?m)^-- \+goose Down\s*$`)
-	schemaDML       = regexp.MustCompile(`(?im)^\s*(INSERT|UPDATE|DELETE|MERGE)\b`)
-	seedDDL         = regexp.MustCompile(`(?im)^\s*(CREATE|ALTER|DROP|TRUNCATE)\b`)
-	bcryptHash      = regexp.MustCompile(`\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53}`)
+	// Schema migrations own structure only. Row mutation (UPDATE/DELETE/MERGE)
+	// and seed-style INSERT ... VALUES stay forbidden.
+	//
+	// An exception is carved out for INSERT INTO <table> (...) SELECT ...:
+	// SQLite cannot drop an inline column constraint, so structural table
+	// rebuilds must copy existing rows across a CREATE TABLE swap. Without that
+	// escape hatch the rebuild is structurally impossible. Seed data still
+	// belongs to the seed stream, so INSERT ... VALUES remains rejected here.
+	schemaMutation = regexp.MustCompile(`(?im)^\s*(UPDATE|DELETE|MERGE)\b`)
+	schemaSeedData = regexp.MustCompile(`(?is)\bINSERT\b[^;]*?\bVALUES\b`)
+	seedDDL        = regexp.MustCompile(`(?im)^\s*(CREATE|ALTER|DROP|TRUNCATE)\b`)
+	bcryptHash     = regexp.MustCompile(`\$2[aby]\$[0-9]{2}\$[./A-Za-z0-9]{53}`)
 )
 
 func TestMigrationStreamsHaveValidGooseFiles(t *testing.T) {
@@ -44,12 +53,36 @@ func TestAdminSeedPasswordMatchesJavaContract(t *testing.T) {
 	}
 }
 
+func TestSchemaStreamStillRejectsSeedStyleInserts(t *testing.T) {
+	seedStyle := []byte("INSERT INTO cms_site_config(id,version) VALUES(1,1);")
+	if !schemaSeedData.Match(seedStyle) {
+		t.Error("INSERT ... VALUES must stay forbidden in the schema stream")
+	}
+
+	rebuild := []byte("INSERT INTO cms_site_config (id, version)\n  SELECT id, version FROM cms_site_config_legacy;")
+	if schemaSeedData.Match(rebuild) {
+		t.Error("the INSERT ... SELECT rebuild exception must be permitted")
+	}
+	if schemaMutation.Match(rebuild) {
+		t.Error("a structural rebuild is not a row mutation")
+	}
+	if !schemaMutation.Match([]byte("UPDATE cms_site_config SET status=1;")) {
+		t.Error("UPDATE must stay forbidden in the schema stream")
+	}
+	if !schemaMutation.Match([]byte("DELETE FROM cms_site_config;")) {
+		t.Error("DELETE must stay forbidden in the schema stream")
+	}
+}
+
 func TestSchemaAndSeedResponsibilitiesStaySeparate(t *testing.T) {
 	for _, dialect := range []string{"postgres", "sqlite"} {
 		for _, name := range migrationFiles(t, dialectPath(dialect, "schema")) {
 			contents := readFile(t, name)
-			if schemaDML.Match(contents) {
-				t.Errorf("schema migration %s contains seed-data DML", name)
+			if schemaMutation.Match(contents) {
+				t.Errorf("schema migration %s mutates rows", name)
+			}
+			if schemaSeedData.Match(contents) {
+				t.Errorf("schema migration %s contains seed-data INSERT ... VALUES", name)
 			}
 		}
 

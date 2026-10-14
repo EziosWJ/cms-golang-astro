@@ -130,6 +130,9 @@ func (s *Service) Submit(ctx context.Context, meta audit.Metadata, key string, i
 			if err := tx.Where("id=?", in.ConfigRevisionID).Take(&revision).Error; err != nil {
 				return ErrInvalid
 			}
+			if err := ensureLocalConfigRevision(ctx, tx, revision.ID); err != nil {
+				return err
+			}
 			if len(siteconfig.Validate(revision.Data)) > 0 {
 				return ErrInvalid
 			}
@@ -182,7 +185,7 @@ func (s *Service) Submit(ctx context.Context, meta audit.Metadata, key string, i
 		if err := tx.Create(&task).Error; err != nil {
 			return err
 		}
-		if err := validateTarget(tx, task); err != nil {
+		if err := validateTarget(ctx, tx, task); err != nil {
 			return err
 		}
 		if err := targetReferences(tx, task); err != nil {
@@ -231,7 +234,7 @@ func (s *Service) Retry(ctx context.Context, meta audit.Metadata, key string, id
 		if task.Status != "failed" && task.Status != "interrupted" {
 			return ErrConflict
 		}
-		if err := validateTarget(tx, task); err != nil {
+		if err := validateTarget(ctx, tx, task); err != nil {
 			return err
 		}
 		if err := targetReferences(tx, task); err != nil {
@@ -251,13 +254,30 @@ func (s *Service) Retry(ctx context.Context, meta audit.Metadata, key string, id
 	})
 	return task, err
 }
-func validateTarget(tx *gorm.DB, task Task) error {
+
+// ensureLocalConfigRevision 拒绝把非 local 站点的配置修订装进本地发布链路。
+// 内容权威恒为 local（ADR-0009 决策二），因此非 local 的修订只能随「向该站点的
+// 交付」生效，不得被静默当作 local 的线上配置。
+func ensureLocalConfigRevision(ctx context.Context, tx *gorm.DB, revisionID int64) error {
+	local, err := siteconfig.RevisionIsLocal(ctx, tx, revisionID)
+	if err != nil {
+		return err
+	}
+	if !local {
+		return ErrConfigRevisionNotLocal
+	}
+	return nil
+}
+func validateTarget(ctx context.Context, tx *gorm.DB, task Task) error {
 	if task.Kind == "config" {
 		if task.ConfigRevisionID == nil {
 			return ErrInvalid
 		}
 		var config siteconfig.Revision
 		if err := tx.Where("id=?", *task.ConfigRevisionID).Take(&config).Error; err != nil {
+			return err
+		}
+		if err := ensureLocalConfigRevision(ctx, tx, config.ID); err != nil {
 			return err
 		}
 		if len(siteconfig.Validate(config.Data)) > 0 {

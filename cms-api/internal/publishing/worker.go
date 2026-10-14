@@ -85,7 +85,7 @@ func (w *Worker) RunNext(ctx context.Context) (bool, error) {
 			if query.RowsAffected == 0 {
 				return gorm.ErrRecordNotFound
 			}
-			if err := validateTarget(tx, task); err != nil {
+			if err := validateTarget(ctx, tx, task); err != nil {
 				return err
 			}
 			bytes := make([]byte, 16)
@@ -175,7 +175,7 @@ func (w *Worker) RunNext(ctx context.Context) (bool, error) {
 		if !sameID(state.CurrentReleaseID, attempt.BaselineReleaseID) {
 			return ErrConflict
 		}
-		if err := validateTarget(tx, task); err != nil {
+		if err := validateTarget(ctx, tx, task); err != nil {
 			return err
 		}
 		return tx.Model(&attempt).Update("switch_intent", 1).Error
