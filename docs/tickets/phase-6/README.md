@@ -1,6 +1,6 @@
 # Phase 6 本地 Tickets
 
-父阶段：无。本阶段为本地新建，远端追踪见下方 Issue 列（[#79](https://github.com/EziosWJ/cms-golang-astro/issues/79)）。
+父阶段：[#80](https://github.com/EziosWJ/cms-golang-astro/issues/80) — [Phase 6] Site Core 内容发现：RSS 与 Sitemap。
 
 归属依据：RSS 与 Sitemap 属于 Site Core，不属于主题：
 
