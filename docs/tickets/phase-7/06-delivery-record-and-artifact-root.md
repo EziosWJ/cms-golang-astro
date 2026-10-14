@@ -14,7 +14,7 @@
 - [ ] **不写入** `cms_publish_task` / `cms_release` / `cms_publish_state`；`cms_publish_task.kind` 的 CHECK 约束**不动**。
 - [ ] `builder.Build` 增加交付的**第三个产物根** `<RuntimeRoot>/deployments/<site>/<key>/`（对应生成工作区同理）。
 - [ ] **`previews/` 产物根永不作为上传源**：交付构建不得设置 `PreviewTaskID`；交付适配器不得以 `previews/` 或 `releases/` 目录作为上传源。此约束必须有测试断言。
-- [ ] **local 与预览两条既有路径的产物逐字节不变**：同一 manifest 下，一期的产物集合与每个文件 sha256 与改动前一致。
+- [ ] **local 与预览两条既有路径的产物逐字节不变**：取同一份 manifest，在改动前后各构建一次，两次的产物文件集合与每个文件 sha256 完全一致（自足写法，不依赖历史产物或历史数据）。
 - [ ] 交付输入按 ADR-0009：以 local 当前线上 release 的 manifest 为基线，替换 `Config` 与**身份字段**（`AttemptID`、`ReleaseKey`），固定 `PreviewTaskID` 不参与。
 - [ ] 前置条件：local 无线上基线时交付**明确失败**并给出可操作提示（复用 `ErrNoBaseline` 语义，文案指向本地站点首次配置发布）。
 - [ ] 独立保留策略：**最近 3 次成功交付 + 当前线上所用的一份**；产物清理**显式跳过** `deployments/` 目录树，且不得把该表记录标记为已清理。

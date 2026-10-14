@@ -28,7 +28,9 @@
 
 ## 决策二：发布域保持单一
 
-不向 `cms_publish_state`、`cms_publish_task`、`cms_release`、`deployment.Pointer`、`cms_published_article`、`slug_locked_at` 及产物保留策略引入站点维度。
+不向 `cms_publish_state`、`cms_publish_task`、**`cms_publish_attempt`**、`cms_release`、`deployment.Pointer`、`cms_published_article`、`cms_article.slug_locked_at` 及产物保留策略引入站点维度。
+
+`cms_publish_attempt` 持有该次尝试的 `manifest` 与 `switch_intent`，是发布域中**最不该**被加站点维度的一处；它与 `deployment.Pointer`（`current.json` **文件**与 Go 结构体，不是表）、`cms_article.slug_locked_at`（**列**，不是表）、保留策略（逻辑，不是表）一样，容易在读「冻结清单」时被漏掉。落地时的验证方式见 [Phase 7](../tickets/phase-7/README.md) 的全局不变量 1。
 
 - **内容权威恒为 local。** 任何非 local 站点的内容输入 = local 的当前线上版本。
 - 因此非 local 站点在内容上**只能落后，不能领先或偏离**；「只把某篇文章发到远端站点」不被支持。漂移方向单一，因此「某站点落后本地多少次交付」是可计算、可显示的事实。
